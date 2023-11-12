@@ -7,5 +7,6 @@ for _ in range(1000):
     observation, reward, terminated, truncated, info = env.step(action)
     if terminated or truncated:
         observation, info = env.reset()
+        breakpoint()
 
 env.close()

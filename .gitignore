@@ -16,10 +16,6 @@ build/
 # Python Installer logs
 pip-log.txt
 
-# Virtual environment
-venv/
-env/
-*.env/
 
 # IDE files
 .vscode/
