@@ -9,8 +9,7 @@ class OBJECTS(object):
     CURRENT = 2
     GOAL = 3
 
-
-class Env(gym.Env):
+class ENV_BASE(gym.Env):
     """
     Custom environment for a 2D map navigation problem in Gym.
 
@@ -29,7 +28,7 @@ class Env(gym.Env):
     metadata = {"render_modes": ['human', 'rgb_array'], 'render_fps': 5}
 
 
-    def __init__(self, map_size=(10, 10), render_mode=None, seed=1):
+    def __init__(self, map_size=(10, 10), render_mode=None, seed=1, BASE_ENV_FLAG=True):
         """
         Initialize the environment.
 
@@ -37,7 +36,7 @@ class Env(gym.Env):
             map_size (tuple): Size of the 2D map (rows, columns).
             seed (int): Seed for random number generation.
         """
-        super(Env, self).__init__()
+        super(ENV_BASE, self).__init__()
         self.window_size = 512
         self.size = map_size[0]
         self.render_mode = render_mode
@@ -46,6 +45,7 @@ class Env(gym.Env):
         self.goal_pos = None
         self.seed = seed
         self.action_space = spaces.Discrete(4)
+        self.BASE_ENV_FLAG = BASE_ENV_FLAG
         self.observation_space = spaces.Dict(
             {
                 "agent": spaces.Box(0, map_size[0] - 1, shape=(2,), dtype=int),
@@ -54,7 +54,6 @@ class Env(gym.Env):
         )
         self.window = None
         self.clock = None
-        self.reset()
 
     def reset(self):
         """
@@ -123,59 +122,60 @@ class Env(gym.Env):
         if self.clock is None and self.render_mode == "human":
             self.clock = pygame.time.Clock()
 
-        canvas = pygame.Surface((self.window_size, self.window_size))
-        canvas.fill((255, 255, 255))
-        pix_square_size = (
+        self.canvas = pygame.Surface((self.window_size, self.window_size))
+        self.canvas.fill((255, 255, 255))
+        self.pix_square_size = (
             self.window_size / self.size
         )  # The size of a single grid square in pixels
 
         # First we draw the target
         pygame.draw.rect(
-            canvas,
+            self.canvas,
             (255, 0, 0),
             pygame.Rect(
-                pix_square_size * self.goal_pos,
-                (pix_square_size, pix_square_size),
+                self.pix_square_size * self.goal_pos,
+                (self.pix_square_size, self.pix_square_size),
             ),
         )
         # Now we draw the agent
         pygame.draw.circle(
-            canvas,
+            self.canvas,
             (0, 0, 255),
-            (self.current_pos + 0.5) * pix_square_size,
-            pix_square_size / 3,
+            (self.current_pos + 0.5) * self.pix_square_size,
+            self.pix_square_size / 3,
         )
 
         # Finally, add some gridlines
         for x in range(self.size + 1):
             pygame.draw.line(
-                canvas,
+                self.canvas,
                 0,
-                (0, pix_square_size * x),
-                (self.window_size, pix_square_size * x),
+                (0, self.pix_square_size * x),
+                (self.window_size, self.pix_square_size * x),
                 width=3,
             )
             pygame.draw.line(
-                canvas,
+                self.canvas,
                 0,
-                (pix_square_size * x, 0),
-                (pix_square_size * x, self.window_size),
+                (self.pix_square_size * x, 0),
+                (self.pix_square_size * x, self.window_size),
                 width=3,
             )
 
-        if self.render_mode == "human":
-            # The following line copies our drawings from `canvas` to the visible window
-            self.window.blit(canvas, canvas.get_rect())
-            pygame.event.pump()
-            pygame.display.update()
+        if self.BASE_ENV_FLAG:
+            if self.render_mode == "human":
+                # The following line copies our drawings from `self.canvas` to the visible window
+                self.window.blit(self.canvas, self.canvas.get_rect())
+                pygame.event.pump()
+                pygame.display.update()
 
-            # We need to ensure that human-rendering occurs at the predefined framerate.
-            # The following line will automatically add a delay to keep the framerate stable.
-            self.clock.tick(self.metadata["render_fps"])
-        else:  # rgb_array
-            return np.transpose(
-                np.array(pygame.surfarray.pixels3d(canvas)), axes=(1, 0, 2)
-            )
+                # We need to ensure that human-rendering occurs at the predefined framerate.
+                # The following line will automatically add a delay to keep the framerate stable.
+                self.clock.tick(self.metadata["render_fps"])
+            else:  # rgb_array
+                return np.transpose(
+                    np.array(pygame.surfarray.pixels3d(self.canvas)), axes=(1, 0, 2)
+                )
 
     def render(self):
         if self.render_mode == "rgb_array":
@@ -188,7 +188,7 @@ class Env(gym.Env):
 
 if __name__ == "__main__":
     render_mode = 'human'
-    env = Env(render_mode=render_mode)
+    env = ENV_BASE(render_mode=render_mode)
     observation = env.reset()
     for _ in range(100):
         action = env.action_space.sample()  
