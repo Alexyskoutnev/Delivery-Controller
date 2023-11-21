@@ -3,11 +3,7 @@ from gymnasium import spaces
 import pygame
 import numpy as np
 
-class OBJECTS(object):
-    EMPTY = 0
-    POTHOLE = 1
-    CURRENT = 2
-    GOAL = 3
+from RL_Pizza_Delivery.visual.assets import COLOR, OBJECTS
 
 class ENV_BASE(gym.Env):
     """
@@ -28,6 +24,7 @@ class ENV_BASE(gym.Env):
     metadata = {"render_modes": ['human', 'rgb_array'], 'render_fps': 5}
 
 
+    # def __init__(self, map_size=(10, 10), render_mode=None, seed=1, BASE_ENV_FLAG=True):
     def __init__(self, map_size=(10, 10), render_mode=None, seed=1, BASE_ENV_FLAG=True):
         """
         Initialize the environment.
@@ -41,6 +38,7 @@ class ENV_BASE(gym.Env):
         self.size = map_size[0]
         self.render_mode = render_mode
         self.map_size = map_size
+        self._max_times = 10 * self.size
         self.current_pos = None
         self.goal_pos = None
         self.seed = seed

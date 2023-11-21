@@ -1,6 +1,5 @@
-
-
 class REWARDS:
     POTHOLE = -1
     TRAFFIC_JAM = -1
-    AT_GOAL = 1
+    AT_GOAL = 10
+    SCALE_DIST = 0.01

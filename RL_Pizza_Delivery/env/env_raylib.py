@@ -1,18 +1,42 @@
 import numpy as np
 import pygame
+import gymnasium as gym
+from ray.rllib.algorithms import ppo
+from gymnasium import spaces
 
-from RL_Pizza_Delivery.env.env import ENV_BASE
 from RL_Pizza_Delivery.visual.assets import COLOR, OBJECTS
 from RL_Pizza_Delivery.env.rewards import REWARDS
 
-class ENV_OBSTACLE(ENV_BASE):
-    def __init__(self, potholes=0, traffic_jams=0, map_size=..., render_mode=None, seed=1):
-        super().__init__(map_size, render_mode, seed, BASE_ENV_FLAG=False)
-        self.num_potholes = potholes
-        self.num_traffic_jams = traffic_jams
+class ENV_OBSTACLE(gym.Env):
+    def __init__(self, config):
+        super(ENV_OBSTACLE, self).__init__()
+        self.window_size = 512
+        # self.size = config['map_size'][0]
+        self.size = 5
+        # self.render_mode = config['render_mode']
+        self.render_mode = None
+        # self.map_size = config['map_size']
+        self.map_size = (5, 5)
+        self._max_times = 10 * self.size
+        self.current_pos = None
+        self.goal_pos = None
+        self.action_space = spaces.Discrete(4)
+        self.observation_space = spaces.Dict(
+            {
+                "agent": spaces.Box(0, self.map_size[0] - 1, shape=(2,), dtype=int),
+                "target": spaces.Box(0, self.map_size[0] - 1, shape=(2,), dtype=int),
+            }
+        )
+        self.window = None
+        self.clock = None
+        # self.num_potholes = config['potholes']
+        self.num_potholes = 0
+        # self.num_traffic_jams = config['traffic_jams']
+        self.num_traffic_jams = 0
         self.holes = np.zeros((self.num_potholes, 2))
         self.traffic_jams = np.zeros((self.num_traffic_jams, 2))
-        self.seed = seed
+        # self.seed = config['seed']
+        self.seed = 0
         self._timestep = 0
         self.reset()
 
@@ -24,7 +48,7 @@ class ENV_OBSTACLE(ENV_BASE):
     def action_dim(self):
         return 4
 
-    def reset(self):
+    def reset(self, seed=1, options=None):
         self._timestep = 0
         self._holes, self._traffic_jams = set(), set()
         _i = 0
@@ -57,7 +81,53 @@ class ENV_OBSTACLE(ENV_BASE):
         return self._get_observation()
 
     def _render_frame(self):
-        super()._render_frame()
+
+        if self.window is None and self.render_mode == "human":
+            pygame.init()
+            pygame.display.init()
+            self.window = pygame.display.set_mode((self.window_size, self.window_size))
+        if self.clock is None and self.render_mode == "human":
+            self.clock = pygame.time.Clock()
+
+        self.canvas = pygame.Surface((self.window_size, self.window_size))
+        self.canvas.fill((255, 255, 255))
+        self.pix_square_size = (
+            self.window_size / self.size
+        )  # The size of a single grid square in pixels
+
+        # First we draw the target
+        pygame.draw.rect(
+            self.canvas,
+            (255, 0, 0),
+            pygame.Rect(
+                self.pix_square_size * self.goal_pos,
+                (self.pix_square_size, self.pix_square_size),
+            ),
+        )
+        # Now we draw the agent
+        pygame.draw.circle(
+            self.canvas,
+            (0, 0, 255),
+            (self.current_pos + 0.5) * self.pix_square_size,
+            self.pix_square_size / 3,
+        )
+
+        # Finally, add some gridlines
+        for x in range(self.size + 1):
+            pygame.draw.line(
+                self.canvas,
+                0,
+                (0, self.pix_square_size * x),
+                (self.window_size, self.pix_square_size * x),
+                width=3,
+            )
+            pygame.draw.line(
+                self.canvas,
+                0,
+                (self.pix_square_size * x, 0),
+                (self.pix_square_size * x, self.window_size),
+                width=3,
+            )
 
         for idx in range(self.num_potholes):
             if np.array_equal(self.current_pos, self.holes[idx]):
@@ -117,7 +187,7 @@ class ENV_OBSTACLE(ENV_BASE):
         #==============REWARDS================================#
         if self.render_mode == 'human':
             self._render_frame()
-        return self._get_observation(), reward, done, {}
+        return self._get_observation(), reward, done, {}, {}
 
     def _get_observation(self):
         """
@@ -142,16 +212,29 @@ class ENV_OBSTACLE(ENV_BASE):
         observation = np.transpose(observation)
         return observation.flatten()
 
+    def render(self, mode='human'):
+        pass
+
+    def close(self):
+        if self.window is not None:
+            pygame.display.quit()
+            pygame.quit()
+
 if __name__ == "__main__":
-    potholes, traffic_jams = 0, 0
-    map_size = (5, 5)
-    render_mode = None
-    env = ENV_OBSTACLE(map_size= map_size, render_mode=render_mode, potholes=potholes, traffic_jams=traffic_jams)
-    observation = env.reset()
-    for _ in range(100):
-        action = env.action_space.sample()  
-        observation, reward, done, _ = env.step(action)
-        print(f"[_]: obs [{observation}] | action [{action}] |  reward [{reward}] | done [{done}] ")
-        if done:
-            print("RESET")
-            observation = env.reset()
+    import ray
+    from ray import tune
+    from ray.rllib.env import MultiAgentEnv
+
+    # Test Custom Enviroment
+    config = {"epochs": 10000, "lr": 1e-3, 'potholes': 0, 'traffic_jams': 0
+            , 'map_size': (5, 5), 'render_mode': None, 'epoch_print_cnt': 500
+            , 'seed' : 1}
+
+    # Register the environment with Ray
+    ray.init()
+
+    algo = ppo.PPO(env=ENV_OBSTACLE, config={
+    "config": config,  # config to pass to env class
+    })
+    while True:
+        print(algo.train())
