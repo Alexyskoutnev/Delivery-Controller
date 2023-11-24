@@ -17,7 +17,7 @@ class QNetwork(nn.Module):
         return x
 
 class QAgent(object):
-    def __init__(self, input_size, output_size, lr=0.001, gamma=0.95, epsilon=0.1) -> None:
+    def __init__(self, input_size, output_size, lr=0.001, gamma=0.99, epsilon=0.1) -> None:
         self.q_network = QNetwork(input_size, output_size)
         self.output_size = output_size
         self.optimizer = optim.Adam(self.q_network.parameters(), lr=lr)
@@ -37,6 +37,6 @@ class QAgent(object):
         q_values = self.q_network(state)
         next_q_values = self.q_network(next_state).max().detach()
         target = reward + (1 - done) * self.gamma * next_q_values
-        loss = self.criterion(q_values, target)
+        loss = self.criterion(q_values[action], target)
         loss.backward()
         self.optimizer.step()
