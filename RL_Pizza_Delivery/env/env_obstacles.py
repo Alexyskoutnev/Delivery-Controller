@@ -91,6 +91,10 @@ class ENV_OBSTACLE(ENV_BASE):
             pygame.event.pump()
             pygame.display.update()
             self.clock.tick(self.metadata["render_fps"])
+        elif self.render_mode == 'rgb_array':  # rgb_array
+                return np.transpose(
+                    np.array(pygame.surfarray.pixels3d(self.canvas)), axes=(1, 0, 2)
+                )
 
     def step(self, action):
         """

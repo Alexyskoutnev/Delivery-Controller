@@ -11,7 +11,7 @@ from RL_Pizza_Delivery.visual.assets import COLOR, OBJECTS
 from RL_Pizza_Delivery.env.rewards import REWARDS
 from RL_Pizza_Delivery.utils.buffer import ExperienceBuffer
 from RL_Pizza_Delivery.algo.qlearning import QAgent
-from RL_Pizza_Delivery.utils.torch_utils import save_model
+from RL_Pizza_Delivery.utils.torch_utils import save_model, save_frames
 
 
 def train(agent, env, buffer, writer=None, config=None):
@@ -45,6 +45,18 @@ def train(agent, env, buffer, writer=None, config=None):
             continue
         if frame_idx % config['SYNC_TARGET_FRAMES'] == 0:
             agent.net_target.load_state_dict(agent.net.state_dict())
+        if epoch % config['EVAL_ITR'] == 0:
+            state = env.reset()
+            buf = list()
+            for i in range(100):
+                if config['render_mode'] == 'rgb_array':
+                    buf.append(env.render())
+                action = agent.select_action(torch.tensor(state, dtype=torch.float32).view(1, -1), espilon=0)
+                next_state, reward, done, _ = env.step(action)
+                state = next_state
+                if done:
+                    break
+            save_frames(buf)
         batch = buffer.sample(config['BATCH_SIZE'])
         loss = agent.update(batch)
         writer.add_scalar("loss", loss, frame_idx)
@@ -52,10 +64,10 @@ def train(agent, env, buffer, writer=None, config=None):
     writer.close()
 
 if __name__ == "__main__":
-    config = {"map_size": (5, 5), "potholes" : 0, "traffic_jams": 0, "render_mode": 'None',
+    config = {"map_size": (5, 5), "potholes" : 0, "traffic_jams": 0, "render_mode": 'rgb_array',
               "GAMMA" : 0.99, "BATCH_SIZE": 32, "REPLAY_SIZE": 10000, "LR": 1e-4, "SYNC_TARGET_FRAMES": 1000,
               "REPLAY_START_SIZE": 10000, "EPSILON_DECAY_LAST_FRAME": 100000, "EPSILON_START": 1.0, "EPSILON_FINAL": 0.01,
-              "epochs" : 2}
+              "epochs" : 100000, "EVAL_ITR": 1000}
     env = ENV_OBSTACLE(map_size=config['map_size'], render_mode=config['render_mode'], potholes=config['potholes'], traffic_jams=config['traffic_jams'])
     buffer = ExperienceBuffer(config['REPLAY_SIZE'])
     agent = QAgent(env, buffer, lr=config['LR'], gamma=config['GAMMA'])
