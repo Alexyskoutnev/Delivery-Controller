@@ -8,6 +8,8 @@ setup(
         # List your dependencies here
         'numpy',
         'matplotlib',
+        'torch',
+        'pygame'
     ],
     author='Alexy Skoutnev, Oluwatito Ebiwonjumi',
     author_email='alexy.a.skoutnev@vanderbilt.edu',

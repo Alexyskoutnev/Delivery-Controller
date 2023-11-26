@@ -36,17 +36,14 @@ class QAgent(object):
     @torch.no_grad()
     def play_step(self, epsilon=0.0, device="cpu"):
         done_reward = None
-
         if np.random.random() < epsilon:
             action = self.env.action_space.sample()
         else:
             state = torch.tensor(self.state, dtype=torch.float32).to(device)
             action = self.select_action(state)
-
         # do step in the environment
         new_state, reward, is_done, _ = self.env.step(action)
         self.total_reward += reward
-
         exp = Experience(self.state, action, reward,
                          is_done, new_state)
         self.buffer.append(exp)
@@ -80,7 +77,6 @@ class QAgent(object):
         rewards = torch.tensor(reward)
         dones =  torch.BoolTensor(done)
         #===============================
-        # q_values = self.net(states)
         state_action_values = self.net(states).gather(1, actions.unsqueeze(-1)).squeeze(-1)
         with torch.no_grad():
             next_state_values = self.net_target(next_states).max(1)[0]

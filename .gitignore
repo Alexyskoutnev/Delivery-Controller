@@ -33,3 +33,4 @@ pip-log.txt
 .DS_Store
 
 /data/*
+*/runs/
