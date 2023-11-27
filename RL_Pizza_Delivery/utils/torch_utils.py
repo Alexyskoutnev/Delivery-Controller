@@ -21,3 +21,10 @@ def save_frames(buffer):
     save_path = os.path.join(SAVE_VID_DIR, "DQN-VID-" + str(date) + ".gif")
     imageio.mimsave(save_path, buffer)
 
+def print_action(action):
+    action_map = {2: "UP", 3 : "DOWN", 0 : "LEFT", 1 : "RIGHT"} 
+    print(f"Action : [{action_map[action]}]")
+
+def load_model(path, model):
+    state_dict = torch.load(path, map_location=torch.device('cpu'))
+    model.net.load_state_dict(state_dict)
