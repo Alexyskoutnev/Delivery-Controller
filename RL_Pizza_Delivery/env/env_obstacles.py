@@ -124,7 +124,7 @@ class ENV_OBSTACLE(ENV_BASE):
         #==============REWARDS================================#
         current_pos_tup = tuple(self.current_pos)
         pothole_reward = REWARDS.POTHOLE if current_pos_tup in self._holes else 0.0
-        goal_reward = REWARDS.AT_GOAL if done and self._timestep < self._max_times else 0.0
+        goal_reward = (self.map_size[0] * REWARDS.AT_GOAL) if done and self._timestep < self._max_times else 0.0
         reward = -REWARDS.SCALE_DIST*(np.sqrt((self.current_pos[0] - self.goal_pos[0])**2) + (self.current_pos[1] - self.goal_pos[1])**2) + pothole_reward + goal_reward
         # reward = -0.1 + goal_reward + pothole_reward
         #==============REWARDS================================#
