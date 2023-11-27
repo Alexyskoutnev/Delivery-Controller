@@ -32,6 +32,7 @@ pip-log.txt
 # Ignore macOS system files
 .DS_Store
 
-/data/*
+/data/models/*
+/data/videos/*
 */runs/*
 *.mp4

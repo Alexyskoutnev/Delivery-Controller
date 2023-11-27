@@ -1,0 +1,17 @@
+epochs : 500000
+map_size : [5, 5]
+potholes : 2
+traffic_jams : 0
+render_mode : rgb_array
+GAMMA : 0.99
+BATCH_SIZE : 32
+REPLAY_SIZE : 10000
+LR : 0.0001
+SYNC_TARGET_FRAMES : 5000
+REPLAY_START_SIZE : 10000
+EPSILON_DECAY_LAST_FRAME : 400000
+EPSILON_START : 1.0
+EPSILON_FINAL : 0.01
+EVAL_ITR : 10000
+record_vid : False
+print_itr : 10000

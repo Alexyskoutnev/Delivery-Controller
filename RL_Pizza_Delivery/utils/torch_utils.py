@@ -6,19 +6,23 @@ import torch
 import torch.nn as nn
 import numpy as np
 import imageio
+import yaml
 
 SAVE_DIR = "../data/models"
 SAVE_VID_DIR = "../data/videos"
+YAML_DIR = "../data/config"
 
-def save_model(model):
+def save_model(model, config):
     date = datetime.datetime.now()
-    save_path = os.path.join(SAVE_DIR, "DQN-" + str(date) + ".pt")
+    map_str = f"{config['map_size'][0]}_{config['map_size'][1]}"  
+    pothole_str = f"_potholes-{config['potholes']}_"  
+    save_path = os.path.join(SAVE_DIR, "DQN" + pothole_str + map_str + ".pt")
     torch.save(model.state_dict(), save_path)
     print(f"SAVE MODEL AT -> {save_path}")
 
 def save_frames(buffer):
     date = datetime.datetime.now()
-    save_path = os.path.join(SAVE_VID_DIR, "DQN-VID-" + str(date) + ".gif")
+    save_path = os.path.join(SAVE_VID_DIR, "DQN-VID" + str(date) + ".gif")
     imageio.mimsave(save_path, buffer)
 
 def print_action(action):
@@ -28,3 +32,8 @@ def print_action(action):
 def load_model(path, model):
     state_dict = torch.load(path, map_location=torch.device('cpu'))
     model.net.load_state_dict(state_dict)
+
+def load_yaml(path):
+    yaml_path = os.path.join(YAML_DIR, path)
+    with open(yaml_path, 'r') as f:
+        return yaml.safe_load(f)

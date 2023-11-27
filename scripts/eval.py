@@ -1,14 +1,7 @@
-import numpy as np
-import pygame
 import torch
-import torch.nn as nn
-import torch.optim as optim
-import time
 import argparse
 
 from RL_Pizza_Delivery.env.env_obstacles import ENV_OBSTACLE
-from RL_Pizza_Delivery.visual.assets import COLOR, OBJECTS
-from RL_Pizza_Delivery.env.rewards import REWARDS
 from RL_Pizza_Delivery.utils.buffer import ExperienceBuffer
 from RL_Pizza_Delivery.algo.qlearning import QAgent
 from RL_Pizza_Delivery.utils.torch_utils import save_model, save_frames, print_action, load_model
