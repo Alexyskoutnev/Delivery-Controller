@@ -145,7 +145,7 @@ class ENV_OBSTACLE(ENV_BASE):
 if __name__ == "__main__":
     potholes, traffic_jams = 0, 0
     map_size = (5, 5)
-    render_mode = None
+    render_mode = "human"
     env = ENV_OBSTACLE(map_size= map_size, render_mode=render_mode, potholes=potholes, traffic_jams=traffic_jams)
     observation = env.reset()
     for _ in range(100):

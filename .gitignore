@@ -31,5 +31,5 @@ pip-log.txt
 
 # Ignore macOS system files
 .DS_Store
-
+pizza/
 /data/*
