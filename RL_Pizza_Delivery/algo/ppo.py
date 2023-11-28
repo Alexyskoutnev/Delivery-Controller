@@ -37,6 +37,7 @@ class PPOAgent(nn.Module):
         self.mini_batch = config['mini_batch']
         self.clipping_coef = config['clipping_coef']
         self.entropy_coef = config['entropy_coef']
+        self.optimizer = optim.Adam(self.parameters(), config['lr'], eps=1e-5)
     
     def get_value(self, x):
         return self.critic(x)
@@ -61,16 +62,16 @@ class PPOAgent(nn.Module):
         for epoch in range(self.update_epoch):
             np.random.shuffle(b_indx)
             for start in range(0, self.batchs, self.mini_batch):
-                end = start + mini_batch
+                end = start + self.mini_batch
                 idxs = b_indx[start:end]
-                _, new_logprob, entropy, new_value = agent.get_action_and_value(b_obs[idxs], b_actions[idxs])
+                _, new_logprob, entropy, new_value = self.get_action_and_value(b_obs[idxs], b_actions[idxs])
                 logratio = new_logprob - b_logprobs[idxs]
                 ratio = logratio.exp()
                 mb_advantages = b_advantages[idxs]
                 mb_advantages = (mb_advantages - mb_advantages.mean()) / (mb_advantages.std() + 1e-8)
                 #============= Policy Loss =================
                 pg_loss1 = -mb_advantages * ratio
-                pg_loss2 = -mb_advantages * torch.clamp(ratio, 1 - self.clipping_coef, 1 +clipping_coef)
+                pg_loss2 = -mb_advantages * torch.clamp(ratio, 1 - self.clipping_coef, 1 + self.clipping_coef)
                 pg_loss = torch.max(pg_loss1, pg_loss2).mean()
                 #============= Policy Loss =================
                 #============= Critic Loss =================
@@ -80,9 +81,9 @@ class PPOAgent(nn.Module):
                 #============= Critic Loss =================
                 #============= Update Step =================
                 loss = pg_loss - self.entropy_coef * entropy_loss + v_loss
-                optimizer.zero_grad()
+                self.optimizer.zero_grad()
                 loss.backward()
-                optimizer.step()
+                self.optimizer.step()
                 #============= Update Step =================
         return v_loss, pg_loss, loss
 
@@ -111,114 +112,3 @@ if __name__ == "__main__":
     env = ENV_OBSTACLE(map_size=map_size, render_mode=render_mode, potholes=potholes)
     agent = PPOAgent(env, config)
     optimizer = optim.Adam(agent.parameters(), lr, eps=1e-5)
-    global_step = 0
-    #Storage Setup
-    obs = torch.zeros((num_steps,) + (env.observation_dim,), dtype=torch.float32).to(device)
-    actions = torch.zeros((num_steps,) + (1,), dtype=torch.float32).to(device)
-    logprobs = torch.zeros((num_steps,), dtype=torch.float32).to(device)
-    rewards = torch.zeros((num_steps,), dtype=torch.float32).to(device)
-    dones = torch.zeros((num_steps,), dtype=torch.float32).to(device)
-    values = torch.zeros((num_steps,), dtype=torch.float32).to(device)
-    next_obs = torch.tensor(env.reset(), dtype=torch.float32).to(device)
-    next_done = torch.zeros(1, dtype=torch.float32).to(device)
-    average_returns = []
-    
-    #Storage Setup
-    num_updates = total_timestep // batchs
-    for update in range(1, num_updates + 1):
-        total_reward = 0.0
-        for step in range(0, num_steps):
-            global_step += 1
-            obs[step] = next_obs
-            dones[step] = next_done
-            with torch.no_grad():
-                action, logprob, _, value = agent.get_action_and_value(next_obs)
-                values[step] = value.flatten()
-            actions[step] = action
-            logprobs[step] = logprob
-            next_obs, reward, done,  _ = env.step(action.cpu().numpy())
-            total_reward += reward
-            rewards[step] = torch.tensor(reward).to(device).view(-1)
-            next_obs = torch.tensor(next_obs, dtype=torch.float32).to(device)
-            next_done = torch.tensor(done, dtype=torch.int).to(device)
-            #Bootstrap the return 
-            with torch.no_grad():
-                next_value = agent.get_value(next_obs).reshape(1, -1)
-                returns = torch.zeros_like(rewards).to(device)
-                for t in reversed(range(num_steps)):
-                    if t == num_steps - 1:
-                        nextnonterminal = 1.0 - next_done
-                        next_return = next_value
-                    else:
-                        nextnonterminal = 1.0 - dones[t + 1]
-                        next_return = returns[t + 1]
-                    returns[t] = rewards[t] + gamma * nextnonterminal * next_return
-                advantages = returns - values
-        
-        average_returns.append(total_reward)
-        #================ Batch of Experience ===================
-        b_obs = obs.reshape((-1, ) + (env.observation_dim,))
-        b_logprobs = logprobs.reshape(-1)
-        b_actions = actions.reshape((-1,) + (1,))
-        b_advantages = advantages.reshape(-1)
-        b_returns = returns.reshape(-1)
-        b_values = values.reshape(-1)
-        b_indx = np.arange(batchs)
-        #================ Batch of Experience ===================
-        clip = []
-        v_loss, pg_loss, loss = agent.update(b_obs, b_logprobs, b_actions, b_advantages, b_returns, b_values)
-
-        # for epoch in range(update_epochs):
-        #     np.random.shuffle(b_indx)
-        #     for start in range(0, batchs, mini_batch):
-        #         end = start + mini_batch
-        #         idxs = b_indx[start:end]
-        #         _, new_logprob, entropy, new_value = agent.get_action_and_value(b_obs[idxs], b_actions[idxs])
-        #         logratio = new_logprob - b_logprobs[idxs]
-        #         ratio = logratio.exp()
-        #         with torch.no_grad():
-        #             old_approx_kl = (-logprob).mean()
-        #             approx_kl = ((ratio -1) - logprob).mean()
-        #             clip += [((ratio - 1.0).abs() > clipping_coef).float().mean().item()]
-                
-        #         mb_advantages = b_advantages[idxs]
-        #         mb_advantages = (mb_advantages - mb_advantages.mean()) / (mb_advantages.std() + 1e-8)
-        #         #============= Policy Loss =================
-        #         pg_loss1 = -mb_advantages * ratio
-        #         pg_loss2 = -mb_advantages * torch.clamp(ratio, 1 - clipping_coef, 1 +clipping_coef)
-        #         pg_loss = torch.max(pg_loss1, pg_loss2).mean()
-        #         #============= Policy Loss =================
-        #         #============= Critic Loss =================
-        #         new_value = new_value.view(-1)
-        #         v_loss = 0.5 * ((new_value - b_returns[idxs])** 2).mean()
-        #         entropy_loss = entropy.mean()
-        #         #============= Critic Loss =================
-        #         #============= Update Step =================
-        #         loss = pg_loss - entropy_coef * entropy_loss + v_loss
-        #         optimizer.zero_grad()
-        #         loss.backward()
-        #         optimizer.step()
-        #         #============= Update Step =================
-        print(f"[{global_step}] Mean Reward: {np.mean(average_returns[-100:]):.3f}")
-        print(f"[{global_step}] Value Loss : {v_loss.item():.3f}")
-        print(f"[{global_step}] Critic Loss : {pg_loss.item():.3f}")
-        #=================== Logging =======================================
-        writer.add_scalar("charts/learning_rate", optimizer.param_groups[0]["lr"], global_step)
-        writer.add_scalar("losses/value_loss", v_loss.item(), global_step)
-        writer.add_scalar("losses/policy_loss", pg_loss.item(), global_step)
-        # writer.add_scalar("losses/entropy", entropy_loss.item(), global_step)
-        # writer.add_scalar("losses/old_approx_kl", old_approx_kl.item(), global_step)
-        # writer.add_scalar("losses/approx_kl", approx_kl.item(), global_step)
-        # writer.add_scalar("losses/clipfrac", np.mean(clip), global_step)    
-
-    env.close()
-    writer.close()    
-
-                
-                
-
-
-                
-
-        
-

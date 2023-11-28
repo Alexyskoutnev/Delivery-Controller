@@ -1,0 +1,16 @@
+potholes : 0
+traffic_jams : 0
+map_size : [3, 3]
+render_mode : 'None'
+lr : 0.0005
+epochs : 1000
+num_steps : 32
+total_timestep : 10000000
+batchs : 8
+mini_batch : 4
+device : 'cpu'
+gamma : 0.99
+update_epochs : 4 #Standard Values
+clipping_coef : 0.1 #Standard Values
+entropy_coef : 0.1 #Standard Values
+max_grad_norm : 0.5 #Standard Values

@@ -12,11 +12,11 @@ SAVE_DIR = "../data/models"
 SAVE_VID_DIR = "../data/videos"
 YAML_DIR = "../data/config"
 
-def save_model(model, config):
+def save_model(model, config, name=""):
     date = datetime.datetime.now()
     map_str = f"{config['map_size'][0]}_{config['map_size'][1]}"  
     pothole_str = f"_potholes-{config['potholes']}_"  
-    save_path = os.path.join(SAVE_DIR, "DQN" + pothole_str + map_str + ".pt")
+    save_path = os.path.join(SAVE_DIR, name + pothole_str + map_str + ".pt")
     torch.save(model.state_dict(), save_path)
     print(f"SAVE MODEL AT -> {save_path}")
 
@@ -37,3 +37,7 @@ def load_yaml(path):
     yaml_path = os.path.join(YAML_DIR, path)
     with open(yaml_path, 'r') as f:
         return yaml.safe_load(f)
+
+def get_device():
+    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
