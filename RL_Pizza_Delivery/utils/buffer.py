@@ -26,6 +26,12 @@ class ExperienceBuffer:
                np.array(dones, dtype=np.uint8), \
                np.array(next_states, dtype=np.float32)
 
+class PPOBuffer(object):
+    def __init__(self) -> None:
+        pass
+
+    # def add(self, )
+
 if __name__ == "__main__":
     buffer =  ExperienceBuffer(10)
     sample_experience = ([1], 1, 1, [2], False)
