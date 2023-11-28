@@ -1,4 +1,4 @@
-# RL Pizza Delivery
+# Delivery-Controller
 
 Navigate a grid map efficiently, avoiding obstacles, and find optimal paths for autonomous systems in this Pizza Delivery project. The repository combines Reinforcement Learning, Monte Carlo Tree Search, and Model-Based Formal Methods to create and validate effective path plans.
 
