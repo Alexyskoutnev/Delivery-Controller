@@ -20,16 +20,20 @@ class PPOAgent(nn.Module):
         self.action_size = env.action_dim
         self.critic = nn.Sequential(
             layer_init(nn.Linear(self.obs_size, 64)),
-            nn.ReLU(),
+            # nn.ReLU(),
+            nn.Tanh(),
             layer_init(nn.Linear(64, 64)),
-            nn.ReLU(),
+            # nn.ReLU(),
+            nn.Tanh(),
             layer_init(nn.Linear(64, 1), std=1.0),
         )
         self.actor = nn.Sequential(
             layer_init(nn.Linear(self.obs_size, 64)),
-            nn.ReLU(),
+            # nn.ReLU(),
+            nn.Tanh(),
             layer_init(nn.Linear(64, 64)),
-            nn.ReLU(),
+            # nn.ReLU(),
+            nn.Tanh(),
             layer_init(nn.Linear(64, self.action_size), std=0.01)
         )
         self.update_epoch = config['update_epochs']
@@ -52,9 +56,12 @@ class PPOAgent(nn.Module):
 
     def get_action_and_value(self, x, action=None):
         _probs = F.softmax(self.actor(x), dim=-1)
-        probs = Categorical(probs=_probs)
+        logits = self.actor(x)
+        probs = Categorical(logits=logits)
         if action is None:
             action = probs.sample()
+        else:
+            action = torch.squeeze(action, dim=1)
         return action, probs.log_prob(action), probs.entropy(), self.critic(x)
     
     def update(self, b_obs, b_logprobs, b_actions, b_advantages, b_returns, b_values):

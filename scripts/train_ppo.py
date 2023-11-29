@@ -27,6 +27,10 @@ def train(agent, env, config, writer, device='cpu'):
     num_updates = config['total_timestep'] // config['batchs']
     for update in range(1, num_updates + 1):
         total_reward = 0.0
+        if config['annealing']:
+            frac = 1.0 - (update - 1.0) / num_updates
+            lrnow = frac * config['lr']
+            agent.optimizer.param_groups[0]['lr'] = lrnow
         for step in range(0, config['num_steps']):
             global_step += 1
             obs[step] = next_obs
@@ -43,17 +47,18 @@ def train(agent, env, config, writer, device='cpu'):
             next_done = torch.tensor(done, dtype=torch.int).to(device)
             with torch.no_grad():
                 next_value = agent.get_value(next_obs).reshape(1, -1)
-                returns = torch.zeros_like(rewards).to(device)
+                advantages = torch.zeros_like(rewards).to(device)
+                lastgaelam = 0
                 for t in reversed(range(config['num_steps'])):
                     if t == config['num_steps'] - 1:
                         nextnonterminal = 1.0 - next_done
-                        next_return = next_value
+                        nextvalues = next_value
                     else:
                         nextnonterminal = 1.0 - dones[t + 1]
-                        next_return = returns[t + 1]
-                    returns[t] = rewards[t] + config['gamma'] * nextnonterminal * next_return
-                advantages = returns - values
-        
+                        nextvalues = values[t + 1]
+                    delta = rewards[t] + config['gamma'] * nextvalues * nextnonterminal - values[t]
+                    advantages[t] = lastgaelam = delta + config['gamma'] * config['gae_lambda'] * nextnonterminal * lastgaelam
+                returns = advantages + values
         average_returns.append(total_reward)
         #================ Batch of Experience ===================
         b_obs = obs.reshape((-1, ) + (env.observation_dim,))
