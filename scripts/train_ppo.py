@@ -22,11 +22,14 @@ def train(agent, env, config, writer, device='cpu'):
     values = torch.zeros((config['num_steps'],), dtype=torch.float32).to(device)
     next_obs = torch.tensor(env.reset(), dtype=torch.float32).to(device)
     next_done = torch.zeros(1, dtype=torch.float32).to(device)
-    average_returns = []
+    average_rewards = []
+    average_return = []
     #Storage Setup
     num_updates = config['total_timestep'] // config['batchs']
     for update in range(1, num_updates + 1):
         total_reward = 0.0
+        next_obs = torch.tensor(env.reset(), dtype=torch.float32).to(device)
+        next_done = torch.zeros(1, dtype=torch.float32).to(device)
         if config['annealing']:
             frac = 1.0 - (update - 1.0) / num_updates
             lrnow = frac * config['lr']
@@ -59,7 +62,8 @@ def train(agent, env, config, writer, device='cpu'):
                     delta = rewards[t] + config['gamma'] * nextvalues * nextnonterminal - values[t]
                     advantages[t] = lastgaelam = delta + config['gamma'] * config['gae_lambda'] * nextnonterminal * lastgaelam
                 returns = advantages + values
-        average_returns.append(total_reward)
+        average_rewards.append(total_reward)
+        average_return.append(returns)
         #================ Batch of Experience ===================
         b_obs = obs.reshape((-1, ) + (env.observation_dim,))
         b_logprobs = logprobs.reshape(-1)
@@ -70,12 +74,10 @@ def train(agent, env, config, writer, device='cpu'):
         b_indx = np.arange(config['batchs'])
         #================ Batch of Experience ===================
         v_loss, pg_loss, loss = agent.update(b_obs, b_logprobs, b_actions, b_advantages, b_returns, b_values)
-        #================ Logging ================ 
-        # print(f"[{global_step}] Mean Reward: {np.mean(average_returns[-100:]):.3f}")
-        # print(f"[{global_step}] Value Loss : {v_loss.item():.3f}")
-        # print(f"[{global_step}] Critic Loss : {pg_loss.item():.3f}")
-        #================ Logging ================ 
+        # env.render()
+        # breakpoint()
         if update % config['EVAL_ITR'] == 0:
+            # breakpoint()
             state = env.reset()
             buf = list()
             eval_total_rewards = 0
@@ -88,10 +90,19 @@ def train(agent, env, config, writer, device='cpu'):
                 eval_total_rewards += reward
                 if done:
                     buf.append(env.render())
+                    state = env.reset()
             print("====================== EVALUALTION ======================")
             print(f"{global_step}: Epoch [{update}/{num_updates} : reward [{eval_total_rewards:.3f}] \t")
             if config['record_vid']:
                 save_frames(buf, name="PPO_")
+        #================ Logging ================ 
+        if update % config['EVAL_ITR'] == 0:
+            # breakpoint()
+            print(f"[{global_step}] Mean Reward: {np.mean(average_rewards[-100:]):.3f}")
+            print(f"[{global_step}] Mean Return: {np.mean(average_return[-100:]):.3f}")
+            print(f"[{global_step}] Value Loss : {v_loss.item():.3f}")
+            print(f"[{global_step}] Critic Loss : {pg_loss.item():.3f}")
+        #================ Logging ================ 
     save_model(agent.critic, config, name="PPO-critic")
     save_model(agent.actor, config, name="PPO-actor" )
     env.close()
