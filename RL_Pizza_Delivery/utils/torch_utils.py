@@ -8,9 +8,9 @@ import numpy as np
 import imageio
 import yaml
 
-SAVE_DIR = "../data/models"
-SAVE_VID_DIR = "../data/videos"
-YAML_DIR = "../data/config"
+SAVE_DIR = "./data/models"
+SAVE_VID_DIR = "./data/videos"
+YAML_DIR = "./data/config"
 
 def save_model(model, config, name=""):
     date = datetime.datetime.now()
@@ -20,9 +20,9 @@ def save_model(model, config, name=""):
     torch.save(model.state_dict(), save_path)
     print(f"SAVE MODEL AT -> {save_path}")
 
-def save_frames(buffer):
+def save_frames(buffer, name=""):
     date = datetime.datetime.now()
-    save_path = os.path.join(SAVE_VID_DIR, "DQN-VID" + str(date) + ".gif")
+    save_path = os.path.join(SAVE_VID_DIR, name + str(date) + ".gif")
     imageio.mimsave(save_path, buffer)
 
 def print_action(action):
