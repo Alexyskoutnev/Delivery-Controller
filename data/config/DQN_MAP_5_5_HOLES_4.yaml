@@ -1,6 +1,6 @@
-epochs : 300000
-map_size : [10, 10]
-potholes : 0
+epochs : 200000
+map_size : [5, 5]
+potholes : 4
 traffic_jams : 0
 render_mode : rgb_array
 GAMMA : 0.99

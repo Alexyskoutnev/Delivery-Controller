@@ -57,15 +57,16 @@ def train(agent, env, buffer, writer=None, config=None):
         writer.add_scalar("loss", loss, frame_idx)
         #================ Logging Step ================ 
     #================= Save/Close =====================
-    save_model(agent.net, config)
+    save_model(agent.net, config, "DQN")
     writer.close()
 
 if __name__ == "__main__":
-    epochs = 500000
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", type=str, default="DQN_MAP_5_5_HOLES_0.yaml", help="Path to a training config in /data/config")
     args = parser.parse_args()
     config = load_yaml(args.config)
+    print("================== CONFIG =======================")
+    print(config)
     env = ENV_OBSTACLE(map_size=config['map_size'], render_mode=config['render_mode'], potholes=config['potholes'], traffic_jams=config['traffic_jams'])
     buffer = ExperienceBuffer(config['REPLAY_SIZE'])
     agent = QAgent(env, buffer, lr=config['LR'], gamma=config['GAMMA'])

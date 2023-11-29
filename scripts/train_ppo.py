@@ -71,9 +71,9 @@ def train(agent, env, config, writer, device='cpu'):
         #================ Batch of Experience ===================
         v_loss, pg_loss, loss = agent.update(b_obs, b_logprobs, b_actions, b_advantages, b_returns, b_values)
         #================ Logging ================ 
-        print(f"[{global_step}] Mean Reward: {np.mean(average_returns[-100:]):.3f}")
-        print(f"[{global_step}] Value Loss : {v_loss.item():.3f}")
-        print(f"[{global_step}] Critic Loss : {pg_loss.item():.3f}")
+        # print(f"[{global_step}] Mean Reward: {np.mean(average_returns[-100:]):.3f}")
+        # print(f"[{global_step}] Value Loss : {v_loss.item():.3f}")
+        # print(f"[{global_step}] Critic Loss : {pg_loss.item():.3f}")
         #================ Logging ================ 
         if update % config['EVAL_ITR'] == 0:
             state = env.reset()
@@ -90,7 +90,7 @@ def train(agent, env, config, writer, device='cpu'):
                     buf.append(env.render())
                     break
             print("====================== EVALUALTION ======================")
-            print(f"{global_step}: Epoch [{update}/{config['epochs']}] : reward [{eval_total_rewards:.3f}] \t")
+            print(f"{global_step}: Epoch [{update}/{num_updates} : reward [{eval_total_rewards:.3f}] \t")
             if config['record_vid']:
                 save_frames(buf, name="PPO_")
     save_model(agent.critic, config, name="PPO-critic")
@@ -105,6 +105,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     config = load_yaml(args.config)
     config['device'] = get_device()
+    print("============ CONFIG ================")
+    print(config)
     device = get_device()
     env = ENV_OBSTACLE(map_size=config['map_size'], render_mode=config['render_mode'], potholes=config['potholes'], traffic_jams=config['traffic_jams'])
     agent = PPOAgent(env, config)
