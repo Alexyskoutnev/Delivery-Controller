@@ -8,7 +8,7 @@ epochs : 1000
 num_steps : 64
 total_timestep : 100000
 EVAL_ITR : 250
-batchs : 32
+batchs : 16
 mini_batch : 4
 device : 'cpu'
 gamma : 0.99

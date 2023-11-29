@@ -4,10 +4,10 @@ map_size : [10, 10]
 render_mode : 'rgb_array'
 lr : 0.0005
 epochs : 1000
-num_steps : 128
-total_timestep : 1000000
+num_steps : 64
+total_timestep : 200000
 EVAL_ITR : 250
-batchs : 32
+batchs : 16
 mini_batch : 4
 device : 'cpu'
 gamma : 0.99
