@@ -1,4 +1,4 @@
-from RL_Pizza_Delivery.env.env import env
+# from RL_Pizza_Delivery.env.env import ENV_BASE
 import math
 import numpy as np
 import torch
@@ -7,6 +7,7 @@ import torch.nn as nn
 class Node:
     def __init__(self, state, parent=None):
         self.state = state
+        self.action = None
         self.parent = parent
         self.children = []
         self.visits = 0
@@ -25,9 +26,11 @@ class ValueNetwork(nn.Module):
         return x
 
 class MCTS:
-    def __init__(self, exploration_weight=1.0, input_size=2):
+    def __init__(self, env, exploration_weight=1.0, input_size=2):
         self.exploration_weight = exploration_weight
         self.value_network = ValueNetwork(input_size)
+        self.env = env
+        self.max_steps = 100
 
     def select(self, node):
         while node.children:
@@ -35,18 +38,18 @@ class MCTS:
         return node
 
     def expand(self, node):
-        actions = range(env.action_space.n)
+        actions = range(self.env.action_space.n)
         for action in actions:
-            next_state, _, _, _ = env.step(action)
+            next_state, _, _, _ = self.env.step(action)
             child_node = Node(next_state, parent=node)
             node.children.append(child_node)
         return node.children[np.random.choice(len(node.children))]
 
     def simulate(self, node):
         total_reward = 0
-        for _ in range(env.max_steps):
-            action = np.random.choice(env.action_space.n)
-            _, reward, done, _ = env.step(action)
+        for _ in range(self.max_steps):
+            action = np.random.choice(self.env.action_space.n)
+            _, reward, done, _ = self.env.step(action)
             total_reward += reward
             if done:
                 break

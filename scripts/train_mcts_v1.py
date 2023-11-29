@@ -34,8 +34,6 @@ def train_value_network(value_network, states, targets, num_epochs=100, learning
             print(f"Epoch {epoch}/{num_epochs}, Loss: {loss.item()}")
 
 # Main training loop
-mcts = MCTS()
-value_network = ValueNetwork(input_size=2)
 
 num_episodes = 100
 num_mcts_iterations = 1000
@@ -43,7 +41,8 @@ config = {"epochs": 10000, "lr": 1e-3, 'potholes': 0, 'traffic_jams': 0
             , 'map_size': (5, 5), 'render_mode': None, 'epoch_print_cnt': 500}
 env = ENV_OBSTACLE(map_size=config['map_size'], render_mode=config['render_mode'], potholes=config['potholes'], traffic_jams=config['traffic_jams'])
  
-
+mcts = MCTS(env, input_size=env.observation_dim)
+value_network = ValueNetwork(input_size=env.observation_dim)
 
 
 for episode in range(num_episodes):
