@@ -74,37 +74,35 @@ def train(agent, env, config, writer, device='cpu'):
         b_indx = np.arange(config['batchs'])
         #================ Batch of Experience ===================
         v_loss, pg_loss, loss = agent.update(b_obs, b_logprobs, b_actions, b_advantages, b_returns, b_values)
-        # env.render()
-        # breakpoint()
         if update % config['EVAL_ITR'] == 0:
-            # breakpoint()
             state = env.reset()
             buf = list()
-            eval_total_rewards = 0
+            eval_total_rewards = []
+            eval_total_reward = 0.0
             for i in range(100):
                 if config['render_mode'] == 'rgb_array':
                     buf.append(env.render())
                 action, prob, entropy, value = agent.get_action_and_value(torch.tensor(state, dtype=torch.float32).view(1, -1))
                 next_state, reward, done, _ = env.step(action.cpu().numpy())
                 state = next_state
-                eval_total_rewards += reward
+                eval_total_reward += reward
                 if done:
                     buf.append(env.render())
+                    eval_total_rewards.append(eval_total_reward)
+                    eval_total_reward = 0.0
                     state = env.reset()
             print("====================== EVALUALTION ======================")
-            print(f"{global_step}: Epoch [{update}/{num_updates} : reward [{eval_total_rewards:.3f}] \t")
+            print(f"{global_step}: Epoch [{update}/{num_updates} : reward [{np.mean(eval_total_rewards):.3f}] \t")
             if config['record_vid']:
                 save_frames(buf, name="PPO_")
         #================ Logging ================ 
         if update % config['EVAL_ITR'] == 0:
-            # breakpoint()
             print(f"[{global_step}] Mean Reward: {np.mean(average_rewards[-100:]):.3f}")
             print(f"[{global_step}] Mean Return: {np.mean(average_return[-100:]):.3f}")
             print(f"[{global_step}] Value Loss : {v_loss.item():.3f}")
             print(f"[{global_step}] Critic Loss : {pg_loss.item():.3f}")
         #================ Logging ================ 
-    save_model(agent.critic, config, name="PPO-critic")
-    save_model(agent.actor, config, name="PPO-actor" )
+    save_model(agent, config, name="PPO", type='ppo')
     env.close()
     writer.close()
 
