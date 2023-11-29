@@ -96,7 +96,7 @@ if __name__ == "__main__":
     render_mode = 'None'
     lr = 1e-3
     epochs = 1000
-    num_steps = 32
+    num_steps = 64
     total_timestep = int(1e7)
     batchs = 8
     mini_batch = 4
