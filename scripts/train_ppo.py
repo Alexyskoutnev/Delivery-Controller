@@ -88,7 +88,6 @@ def train(agent, env, config, writer, device='cpu'):
                 eval_total_rewards += reward
                 if done:
                     buf.append(env.render())
-                    break
             print("====================== EVALUALTION ======================")
             print(f"{global_step}: Epoch [{update}/{num_updates} : reward [{eval_total_rewards:.3f}] \t")
             if config['record_vid']:

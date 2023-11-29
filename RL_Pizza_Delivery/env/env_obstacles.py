@@ -25,7 +25,7 @@ class ENV_OBSTACLE(ENV_BASE):
 
     @property
     def observation_dim(self):
-        return self.map_size[0] * self.map_size[1]
+        return (self.map_size[0] * self.map_size[1]) + 2
     
     @property
     def action_dim(self):
@@ -140,20 +140,34 @@ class ENV_OBSTACLE(ENV_BASE):
             np.ndarray: The observation array representing the current state.
         """
         observation = np.zeros(self.map_size)
-        observation[self.current_pos[0], self.current_pos[1]] = OBJECTS.CURRENT
-        observation[self.goal_pos[0], self.goal_pos[1]] = OBJECTS.GOAL
+        obstacle_obs = np.zeros(self.map_size)
+        self._render_observation = np.zeros(self.map_size)
+        agent_obs = np.array([self.current_pos[0] * self.map_size[0] + self.current_pos[1] * self.map_size[1]], dtype=np.float32)
+        goal_obs = np.array([self.goal_pos[0] * self.map_size[0] + self.goal_pos[1] * self.map_size[1]], dtype=np.float32)
+        # observation[self.current_pos[0], self.current_pos[1]] = OBJECTS.CURRENT
+        self._render_observation[self.current_pos[0], self.current_pos[1]] = OBJECTS.CURRENT
+        self._render_observation[self.goal_pos[0], self.goal_pos[1]] = OBJECTS.GOAL
+
+        # observation[self.goal_pos[0], self.goal_pos[1]] = OBJECTS.GOAL
         for hole in self._holes:
+            observation[hole[0], hole[1]] = 1
             if hole == tuple(self.current_pos):
-                observation[hole[0], hole[1]] = OBJECTS.POTHOLE_N_CURRENT
+                self._render_observation[hole[0], hole[1]] = OBJECTS.POTHOLE_N_CURRENT
             else:
-                observation[hole[0], hole[1]] = OBJECTS.POTHOLE
+                self._render_observation[hole[0], hole[1]] = OBJECTS.POTHOLE
+                
+                # observation[hole[0], hole[1]] = OBJECTS.POTHOLE_N_CURRENT
+                # observation[hole[0], hole[1]] = 1
+            # else:
+                # observation[hole[0], hole[1]] = OBJECTS.POTHOLE
         for traffic_jam in self._traffic_jams:
             if traffic_jam in tuple(self.current_pos):
                 observation[traffic_jam[0], traffic_jam[1]] = OBJECTS.TRAFFIC_JAM_N_CURRENT
             else:
                 observation[hole[0], hole[1]] = OBJECTS.TRAFFIC_JAM
-        observation = np.transpose(observation)
-        return observation.flatten()
+        observation = np.transpose(observation).flatten()
+        observation = np.concatenate((agent_obs, goal_obs, observation))
+        return observation
 
 if __name__ == "__main__":
      # Training parameters

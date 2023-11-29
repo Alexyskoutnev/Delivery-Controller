@@ -1,4 +1,4 @@
-epochs : 300000
+total_timesteps : 500000
 map_size : [10, 10]
 potholes : 0
 traffic_jams : 0
@@ -6,12 +6,12 @@ render_mode : rgb_array
 GAMMA : 0.99
 BATCH_SIZE : 32
 REPLAY_SIZE : 10000
-LR : 0.0001
+LR : 0.001
 SYNC_TARGET_FRAMES : 5000
 REPLAY_START_SIZE : 10000
-EPSILON_DECAY_LAST_FRAME : 400000
 EPSILON_START : 1.0
 EPSILON_FINAL : 0.01
-EVAL_ITR : 1000
+EVAL_ITR : 10000
 record_vid : True
 print_itr : 10000
+eval_steps : 100
