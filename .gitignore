@@ -36,3 +36,4 @@ pip-log.txt
 /data/videos/*
 */runs/*
 *.mp4
+/runs/*
