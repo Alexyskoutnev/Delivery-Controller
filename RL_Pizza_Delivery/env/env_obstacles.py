@@ -1,9 +1,16 @@
 import numpy as np
 import pygame
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import time
+from tensorboardX import SummaryWriter
 
 from RL_Pizza_Delivery.env.env import ENV_BASE
 from RL_Pizza_Delivery.visual.assets import COLOR, OBJECTS
 from RL_Pizza_Delivery.env.rewards import REWARDS
+from RL_Pizza_Delivery.utils.buffer import ExperienceBuffer
+from RL_Pizza_Delivery.algo.qlearning import QAgent
 
 class ENV_OBSTACLE(ENV_BASE):
     def __init__(self, potholes=0, traffic_jams=0, map_size=..., render_mode=None, seed=1):
@@ -29,7 +36,9 @@ class ENV_OBSTACLE(ENV_BASE):
         self._holes, self._traffic_jams = set(), set()
         _i = 0
         self.current_pos = self.np_random.integers(0, self.size, size=2, dtype=int)
+        # self.current_pos = np.array([0, 0], dtype=int)
         self.goal_pos = self.current_pos
+        # self.goal_pos = np.array([self.map_size[0] - 1, self.map_size[0] - 1])
         while np.array_equal(self.goal_pos, self.current_pos):
             self.goal_pos = self.np_random.integers(0, self.size, size=2, dtype=int)
         for i, pothole in enumerate(range(self.num_potholes)):
@@ -82,6 +91,10 @@ class ENV_OBSTACLE(ENV_BASE):
             pygame.event.pump()
             pygame.display.update()
             self.clock.tick(self.metadata["render_fps"])
+        elif self.render_mode == 'rgb_array':  # rgb_array
+                return np.transpose(
+                    np.array(pygame.surfarray.pixels3d(self.canvas)), axes=(1, 0, 2)
+                )
 
     def step(self, action):
         """
@@ -111,9 +124,9 @@ class ENV_OBSTACLE(ENV_BASE):
         #==============REWARDS================================#
         current_pos_tup = tuple(self.current_pos)
         pothole_reward = REWARDS.POTHOLE if current_pos_tup in self._holes else 0.0
-        goal_reward = REWARDS.AT_GOAL if done and self._timestep < self._max_times else 0.0
-        # reward = REWARDS.SCALE_DIST*(1 / (np.sqrt((self.current_pos[0] - self.goal_pos[0])**2) + 0.0001) + (self.current_pos[1] - self.goal_pos[1])**2) + pothole_reward + goal_reward
+        goal_reward = (self.map_size[0] * REWARDS.AT_GOAL) if done and self._timestep < self._max_times else 0.0
         reward = -REWARDS.SCALE_DIST*(np.sqrt((self.current_pos[0] - self.goal_pos[0])**2) + (self.current_pos[1] - self.goal_pos[1])**2) + pothole_reward + goal_reward
+        # reward = -0.1 + goal_reward + pothole_reward
         #==============REWARDS================================#
         if self.render_mode == 'human':
             self._render_frame()
@@ -143,15 +156,70 @@ class ENV_OBSTACLE(ENV_BASE):
         return observation.flatten()
 
 if __name__ == "__main__":
+     # Training parameters
     potholes, traffic_jams = 0, 0
     map_size = (5, 5)
-    render_mode = "human"
+    render_mode = 'None'
+    # render_mode = 'human'
+    grid_size = 5
+    state_size = grid_size * grid_size
+    action_size = 4
+    learning_rate = 0.0001
+    gamma = 0.99
+    epsilon_decay = 0.95
+    epsilon_min = 0.01
+    episodes = 1000
+    max_moves = grid_size * 10
+    GAMMA = 0.99
+    BATCH_SIZE = 32
+    REPLAY_SIZE = 10000
+    LEARNING_RATE = 1e-4
+    SYNC_TARGET_FRAMES = 1000
+    REPLAY_START_SIZE = 10000
+
+    EPSILON_DECAY_LAST_FRAME = 100000
+    EPSILON_START = 1.0
+    EPSILON_FINAL = 0.01
+
     env = ENV_OBSTACLE(map_size= map_size, render_mode=render_mode, potholes=potholes, traffic_jams=traffic_jams)
-    observation = env.reset()
-    for _ in range(100):
-        action = env.action_space.sample()  
-        observation, reward, done, _ = env.step(action)
-        print(f"[_]: obs [{observation}] | action [{action}] |  reward [{reward}] | done [{done}] ")
-        if done:
-            print("RESET")
-            observation = env.reset()
+    input_size, output_size = env.observation_dim, env.action_dim
+    buffer = ExperienceBuffer(REPLAY_SIZE)
+    agent = QAgent(env, buffer, lr=learning_rate, gamma=gamma)
+    epsilon = EPSILON_START
+    total_rewards = []
+    frame_idx = 0
+    ts_frame = 0
+    ts = time.time()
+
+    writer = SummaryWriter(comment="-")
+
+    while True:
+        frame_idx += 1
+        epsilon = max(EPSILON_FINAL, EPSILON_START -
+                        frame_idx / EPSILON_DECAY_LAST_FRAME)
+
+        reward = agent.play_step(epsilon) 
+
+        if reward is not None:
+            total_rewards.append(reward)
+            speed = (frame_idx - ts_frame) / (time.time() - ts)
+            ts_frame = frame_idx
+            ts = time.time()
+            m_reward = np.mean(total_rewards[-100:])
+            print("%d: done %d games, reward %.3f, "
+                  "eps %.2f, speed %.2f f/s" % (
+                frame_idx, len(total_rewards), m_reward, epsilon,
+                speed
+            ))
+            writer.add_scalar("epsilon", epsilon, frame_idx)
+            writer.add_scalar("speed", speed, frame_idx)
+            writer.add_scalar("reward_100", m_reward, frame_idx)
+            writer.add_scalar("reward", reward, frame_idx)
+
+        if len(buffer) < REPLAY_START_SIZE:
+            continue
+        if frame_idx % SYNC_TARGET_FRAMES == 0:
+            agent.net_target.load_state_dict(agent.net.state_dict())
+        batch = buffer.sample(BATCH_SIZE)
+        loss = agent.update(batch)
+        writer.add_scalar("loss", loss, frame_idx)

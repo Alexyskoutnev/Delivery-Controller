@@ -159,6 +159,21 @@ class ENV_BASE(gym.Env):
                 (self.pix_square_size * x, self.window_size),
                 width=3,
             )
+        
+        if np.array_equal(self.current_pos, self.goal_pos):
+            pygame.draw.rect(
+            self.canvas,
+            (255, 0, 0),
+            pygame.Rect(
+                self.pix_square_size * self.current_pos,
+                (self.pix_square_size, self.pix_square_size),
+            ),)
+            pygame.draw.circle(
+            self.canvas,
+            COLOR.blue,
+            (self.current_pos + 0.5) * self.pix_square_size,
+            self.pix_square_size / 3,
+            )
 
         if self.BASE_ENV_FLAG:
             if self.render_mode == "human":
@@ -170,7 +185,7 @@ class ENV_BASE(gym.Env):
                 # We need to ensure that human-rendering occurs at the predefined framerate.
                 # The following line will automatically add a delay to keep the framerate stable.
                 self.clock.tick(self.metadata["render_fps"])
-            else:  # rgb_array
+            elif self.render_mode == 'rgb_array':  # rgb_array
                 return np.transpose(
                     np.array(pygame.surfarray.pixels3d(self.canvas)), axes=(1, 0, 2)
                 )
