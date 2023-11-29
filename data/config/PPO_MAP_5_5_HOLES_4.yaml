@@ -1,7 +1,8 @@
 potholes : 4
 traffic_jams : 0
 map_size : [5, 5]
-render_mode : 'rgb_array'
+# render_mode : 'rgb_array'
+render_mode : 'human'
 lr : 0.001
 epochs : 1000
 num_steps : 64

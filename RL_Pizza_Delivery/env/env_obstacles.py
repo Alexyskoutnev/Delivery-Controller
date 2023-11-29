@@ -37,10 +37,10 @@ class ENV_OBSTACLE(ENV_BASE):
         _i = 0
         self.current_pos = self.np_random.integers(0, self.size, size=2, dtype=int)
         # self.current_pos = np.array([0, 0], dtype=int)
-        self.goal_pos = self.current_pos
-        # self.goal_pos = np.array([self.map_size[0] - 1, self.map_size[0] - 1])
+        # self.goal_pos = self.current_pos
+        self.goal_pos = np.array([self.map_size[0] - 1, self.map_size[0] - 1])
         while np.array_equal(self.goal_pos, self.current_pos):
-            self.goal_pos = self.np_random.integers(0, self.size, size=2, dtype=int)
+            self.current_pos = self.np_random.integers(0, self.size, size=2, dtype=int)
         for i, pothole in enumerate(range(self.num_potholes)):
             hole = self.np_random.integers(0, self.size, size=2, dtype=int)
             hole_tuple = tuple(hole)
@@ -132,6 +132,19 @@ class ENV_OBSTACLE(ENV_BASE):
             self._render_frame()
         return self._get_observation(), reward, done, {}
 
+    @property
+    def get_map(self):
+        return self._render_observation
+
+    @property
+    def get_pose(self):
+        return self.current_pos
+
+    @property
+    def get_goal(self):
+        return self.goal_pos
+        
+
     def _get_observation(self):
         """
         Get the current observation of the environment.
@@ -145,16 +158,17 @@ class ENV_OBSTACLE(ENV_BASE):
         agent_obs = np.array([self.current_pos[0] * self.map_size[0] + self.current_pos[1] * self.map_size[1]], dtype=np.float32)
         goal_obs = np.array([self.goal_pos[0] * self.map_size[0] + self.goal_pos[1] * self.map_size[1]], dtype=np.float32)
         # observation[self.current_pos[0], self.current_pos[1]] = OBJECTS.CURRENT
-        self._render_observation[self.current_pos[0], self.current_pos[1]] = OBJECTS.CURRENT
-        self._render_observation[self.goal_pos[0], self.goal_pos[1]] = OBJECTS.GOAL
-
+        # self._render_observation[self.current_pos[0], self.current_pos[1]] = OBJECTS.CURRENT
+        # self._render_observation[self.goal_pos[0], self.goal_pos[1]] = OBJECTS.GOAL
         # observation[self.goal_pos[0], self.goal_pos[1]] = OBJECTS.GOAL
         for hole in self._holes:
             observation[hole[0], hole[1]] = 1
-            if hole == tuple(self.current_pos):
-                self._render_observation[hole[0], hole[1]] = OBJECTS.POTHOLE_N_CURRENT
-            else:
-                self._render_observation[hole[0], hole[1]] = OBJECTS.POTHOLE
+            self._render_observation[hole[0], hole[1]] = 1
+            
+            # if hole == tuple(self.current_pos):
+            #     self._render_observation[hole[0], hole[1]] = OBJECTS.POTHOLE_N_CURRENT
+            # else:
+            #     self._render_observation[hole[0], hole[1]] = OBJECTS.POTHOLE
                 
                 # observation[hole[0], hole[1]] = OBJECTS.POTHOLE_N_CURRENT
                 # observation[hole[0], hole[1]] = 1

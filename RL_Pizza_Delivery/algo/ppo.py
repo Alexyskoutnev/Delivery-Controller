@@ -46,6 +46,12 @@ class PPOAgent(nn.Module):
     def get_value(self, x):
         return self.critic(x)
 
+    def forward(self, x):
+        logits = self.actor(x)
+        probs = Categorical(logits=logits)
+        action = probs.sample()
+        return action
+        
     def compute_returns(self, rewards, next_value):
         returns = []
         R = next_value

@@ -1,12 +1,11 @@
-potholes : 10
+potholes : 20
 traffic_jams : 0
 map_size : [10, 10]
-# render_mode : 'rgb_array'
-render_mode : 'human'
+render_mode : 'rgb_array'
 lr : 0.0005
 epochs : 1000
 num_steps : 64
-total_timestep : 200000
+total_timestep : 100000
 EVAL_ITR : 250
 batchs : 16
 mini_batch : 4
