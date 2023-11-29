@@ -8,7 +8,7 @@ import numpy as np
 import imageio
 import yaml
 
-SAVE_DIR = "./data/models"
+SAVE_DIR = "./data/final_models"
 SAVE_VID_DIR = "./data/videos"
 YAML_DIR = "./data/config"
 
