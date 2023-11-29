@@ -5,8 +5,8 @@ render_mode : 'rgb_array'
 lr : 0.001
 epochs : 1000
 num_steps : 128
-total_timestep : 1000000
-EVAL_ITR : 250
+total_timestep : 100000
+EVAL_ITR : 100
 batchs : 32
 mini_batch : 4
 device : 'cpu'
