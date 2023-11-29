@@ -14,6 +14,26 @@ from RL_Pizza_Delivery.utils.buffer import ExperienceBuffer
 from RL_Pizza_Delivery.algo.qlearning import QAgent
 from RL_Pizza_Delivery.utils.torch_utils import save_model, save_frames, load_yaml
 
+def eval(agent, env, config, frameid):
+    buf = []
+    eval_total_rewards = 0.0
+    state = env.reset()
+    for i in range(config['eval_steps']):
+        if config['render_mode'] == 'rgb_array':
+            buf.append(env.render())
+        elif config['render_mode'] == 'human':
+            env.render()
+        action = agent.select_action(torch.tensor(state, dtype=torch.float32), 0)
+        next_state, reward, done, _ = env.step(action)
+        state = next_state
+        eval_total_rewards += reward
+        if done:
+            state = env.reset()
+            buf.append(env.render())
+    print("====================== EVALUALTION ======================")
+    print(f"{frameid}: reward [{eval_total_rewards:.3f}] \t")
+    if config['record_vid']:
+        save_frames(buf, name="DQN_")
 
 def train(agent, env, buffer, writer=None, config=None):
     epsilon = config['EPSILON_START']
@@ -21,7 +41,7 @@ def train(agent, env, buffer, writer=None, config=None):
     frame_idx = 0
     ts_frame = 0
     ts = time.time()
-    for epoch in range(config['epochs']):
+    while (frame_idx < config['total_timesteps']):
         #================ Experience Collection ================ 
         frame_idx += 1
         epsilon = max(config['EPSILON_FINAL'], config['EPSILON_START'] -
@@ -47,7 +67,7 @@ def train(agent, env, buffer, writer=None, config=None):
         loss = agent.update(batch)
         #================ Backprob Update ======================        
         #================ Logging Update =======================
-        if epoch % config['print_itr'] == 0:
+        if frame_idx % config['print_itr'] == 0:
                 print("%d: done %d games, reward %.3f, "
                     "eps %.2f, speed %.2f f/s" % (
                     frame_idx, len(total_rewards), m_reward, epsilon,
@@ -56,6 +76,10 @@ def train(agent, env, buffer, writer=None, config=None):
         
         writer.add_scalar("loss", loss, frame_idx)
         #================ Logging Step ================ 
+        #================ EVAL STEP ===================
+        if frame_idx % config['EVAL_ITR'] == 0:
+            eval(agent, env, config, frame_idx)
+        #================ EVAL STEP ===================
     #================= Save/Close =====================
     save_model(agent.net, config, "DQN")
     writer.close()
@@ -65,6 +89,7 @@ if __name__ == "__main__":
     parser.add_argument("-c", "--config", type=str, default="DQN_MAP_5_5_HOLES_0.yaml", help="Path to a training config in /data/config")
     args = parser.parse_args()
     config = load_yaml(args.config)
+    config['EPSILON_DECAY_LAST_FRAME'] = int(config['total_timesteps'] * 0.9)
     print("================== CONFIG =======================")
     print(config)
     env = ENV_OBSTACLE(map_size=config['map_size'], render_mode=config['render_mode'], potholes=config['potholes'], traffic_jams=config['traffic_jams'])
