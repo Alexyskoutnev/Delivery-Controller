@@ -5,7 +5,7 @@ render_mode : 'rgb_array'
 lr : 0.001
 epochs : 1000
 num_steps : 128
-total_timestep : 100000
+total_timestep : 500000
 EVAL_ITR : 250
 batchs : 32
 mini_batch : 4
@@ -18,3 +18,4 @@ max_grad_norm : 0.5 #Standard Values
 gae_lambda : 0.95
 record_vid : True
 annealing : True
+eval_steps : 100

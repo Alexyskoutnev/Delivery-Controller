@@ -18,3 +18,4 @@ max_grad_norm : 0.5 #Standard Values
 gae_lambda : 0.95
 record_vid : True
 annealing : True
+eval_steps : 100
