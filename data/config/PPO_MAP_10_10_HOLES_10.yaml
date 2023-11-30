@@ -1,4 +1,4 @@
-potholes : 10
+potholes : 20
 traffic_jams : 0
 map_size : [10, 10]
 # render_mode : 'rgb_array'

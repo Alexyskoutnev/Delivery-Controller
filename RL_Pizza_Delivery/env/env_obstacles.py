@@ -35,8 +35,8 @@ class ENV_OBSTACLE(ENV_BASE):
         self._timestep = 0
         self._holes, self._traffic_jams = set(), set()
         _i = 0
-        self.current_pos = self.np_random.integers(0, self.size, size=2, dtype=int)
-        # self.current_pos = np.array([0, 0], dtype=int)
+        # self.current_pos = self.np_random.integers(0, self.size, size=2, dtype=int)
+        self.current_pos = np.array([0, 0], dtype=int)
         # self.goal_pos = self.current_pos
         self.goal_pos = np.array([self.map_size[0] - 1, self.map_size[0] - 1])
         while np.array_equal(self.goal_pos, self.current_pos):
@@ -47,6 +47,7 @@ class ENV_OBSTACLE(ENV_BASE):
             while (np.array_equal(self.current_pos, hole) or np.array_equal(self.goal_pos, hole) or hole_tuple in self._holes) and _i < 1000:
                 hole = self.np_random.integers(0, self.size, size=2, dtype=int)
                 _i += 1
+            hole_tuple = tuple(hole)
             self.holes[i] = hole
             self._holes.add(hole_tuple)
             _i = 0
