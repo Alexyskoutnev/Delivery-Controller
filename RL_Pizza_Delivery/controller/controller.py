@@ -22,6 +22,7 @@ class Controller(object):
     def __init__(self, env, model, properties=None) -> None:
         self.model = model
         self.env = env
+        self.init_state = env.reset()
         self.property = properties
         self.map = env.get_map
         self.map_size = env.map_size
@@ -33,30 +34,30 @@ class Controller(object):
 
     def _solve(self):
         _itr = 0
+        state = self.init_state
         while (_itr < self.max_itr):
-            # print(f"PREVIOUS STATE {self.current_pos}")
-            state = self._state()
-            action = self.model(state)
+            action = self.model(torch.tensor(state, dtype=torch.float32)).item()
             property_bool = self._test(action)
             if property_bool:
-                action = self._safe_search(model_action=action)
-                next_state = self._step(action, update=True)
-            else:
-                next_state = self._step(action, update=True)
-            property_bool = self._test(action)
-            print(f"Property_bool {property_bool}")
-            # print(f"Current_State {next_state}")
-            self.path.append(next_state)
-            if np.array_equal(next_state, self.goal_pos):
+                action = self._safe_search()
+                if action == None:
+                    break
+            state = self._step(action)
+            if np.array_equal(self.current_pos, self.goal_pos):
                 print("AT GOAL")
-                return
+                break
+            
+    def _step(self, action):
+        state, _, _, _ = env.step(action)
+        self.current_pos = env.current_pos
+        return state
         
     def _hole(self, state):
         return True if self.map[state[0]][state[1]] == 1. else False
 
     def _test(self, action):
         if self.property['POTHOLES']:
-            next_state = self._step(action, update=False)
+            next_state = self._lookahead(action, update=False)
             inhole = self._hole(next_state)
             if inhole:
                 return True
@@ -71,24 +72,24 @@ class Controller(object):
         idx = np.argmax((diff == 1) | (diff == -1))
         if idx == 0: #if diffence is along y-axis
             if diff[idx] == 1: #down
-                action = 3 #down command
-            elif diff[idx] == -1:
-                action = 2 #up command
-        elif idx == 1: #if difference is along x-axis
-            if diff[idx] == 1:
                 action = 1 #right command
             elif diff[idx] == -1:
                 action = 0 #left command
+        elif idx == 1: #if difference is along x-axis
+            if diff[idx] == 1:
+                action = 3 #down command
+            elif diff[idx] == -1:
+                action = 2 #up command
         return action
 
-    def _safe_search(self, model_action=None):
+    def _safe_search(self):
         path = self.astar(self.map.tolist(), tuple(self.current_pos), tuple(self.goal_pos))
         if len(path) >= 2:
-            print("USED A STAR STEP")
             next_state = path[1]
             action = self._compute_action(path[0], path[1])
         else:
-            action = model_action
+            print("FAIL TO FIND A PATH")
+            return None
         return action
 
     def astar(self, grid, start, goal):
@@ -131,7 +132,7 @@ class Controller(object):
                     heapq.heappush(open_set, (f_cost, neighbor_node, new_path))
         return []  # No path found
 
-    def _step(self, action, update=False):
+    def _lookahead(self, action, update=False):
         if action == 0: #UP
             current_pos = max(0, self.current_pos[0] - 1), self.current_pos[1]
         elif action == 1: #Down
@@ -140,14 +141,7 @@ class Controller(object):
             current_pos = self.current_pos[0], max(0, self.current_pos[1] - 1)
         elif action == 3:
             current_pos = self.current_pos[0], min(self.map_size[1] - 1, self.current_pos[1] + 1)
-        if update:
-            self.current_pos = np.array(current_pos, dtype=int)
-            return self.current_pos
-        else:
-            return current_pos
-
-    def _convert_to_coords(self, state):
-        i, j = state[0:2]
+        return current_pos
 
     def _state(self):
         agent_obs = np.array([self.current_pos[0] * self.map_size[0] + self.current_pos[1] * self.map_size[1]], dtype=np.float32)
@@ -175,7 +169,6 @@ if __name__ == "__main__":
         type = 'ppo'
         load_model(args.model, model, type='ppo')
         properties = load_yaml(PROPERTY_CONFIG)
-    
     controller = Controller(env, model, properties)
     
     
