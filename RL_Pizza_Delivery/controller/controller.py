@@ -5,10 +5,7 @@ import numpy as np
 import heapq
 
 from RL_Pizza_Delivery.env.env_obstacles import ENV_OBSTACLE
-<<<<<<< HEAD
-=======
 from RL_Pizza_Delivery.controller.monitor import Monitor
->>>>>>> alexy-dev
 from RL_Pizza_Delivery.utils.buffer import ExperienceBuffer
 from RL_Pizza_Delivery.algo.qlearning import QAgent
 from RL_Pizza_Delivery.algo.ppo import PPOAgent
@@ -23,11 +20,7 @@ def load(env, path, model):
     model.net.load_state_dict(state_dict)
 
 class Controller(object):
-<<<<<<< HEAD
-    def __init__(self, env, model, properties=None) -> None:
-=======
     def __init__(self, env, model, properties=None, monitor_flag=False) -> None:
->>>>>>> alexy-dev
         self.model = model
         self.env = env
         self.init_state = env.reset()
@@ -37,14 +30,10 @@ class Controller(object):
         self.current_pos = env.get_pose
         self.goal_pos = env.get_goal
         self.max_itr = 100
-<<<<<<< HEAD
-        self.path = []
-=======
         self.monitor = Monitor(self.current_pos, properties, self.map) if monitor_flag else None 
         self.path = []
 
     def run(self):
->>>>>>> alexy-dev
         self._solve()
 
     def _solve(self):
@@ -57,26 +46,17 @@ class Controller(object):
                 action = self._safe_search()
                 if action == None:
                     break
-<<<<<<< HEAD
-            state = self._step(action)
-=======
 
             state = self._step(action)
             if self.monitor:
                 self.monitor.update(self.current_pos)
->>>>>>> alexy-dev
             if np.array_equal(self.current_pos, self.goal_pos):
                 print("AT GOAL")
                 break
             
     def _step(self, action):
-<<<<<<< HEAD
-        state, _, _, _ = env.step(action)
-        self.current_pos = env.current_pos
-=======
         state, _, _, _ = self.env.step(action)
         self.current_pos = self.env.current_pos
->>>>>>> alexy-dev
         return state
         
     def _hole(self, state):
