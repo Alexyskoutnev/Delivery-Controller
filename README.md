@@ -29,3 +29,10 @@ The repository is organized into the following directories:
    ```bash
    git clone https://github.com/your-username/RL_Pizza_Delivery.git
    cd RL_Pizza_Delivery
+
+2. Run Example
+   ```bash
+   python3 RL _Pizza_Delivery/run.py -s
+
+A Gym enviroment will display on the screen wherethe "driver" will traverse
+the map filled with potholes. 

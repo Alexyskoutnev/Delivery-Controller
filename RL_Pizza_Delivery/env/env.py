@@ -21,7 +21,7 @@ class ENV_BASE(gym.Env):
         action_space (gym.Space): Action space for the environment (Discrete).
         observation_space (gym.Space): Observation space for the environment (Box).
     """
-    metadata = {"render_modes": ['human', 'rgb_array'], 'render_fps': 5}
+    metadata = {"render_modes": ['human', 'rgb_array'], 'render_fps': 10}
 
 
     # def __init__(self, map_size=(10, 10), render_mode=None, seed=1, BASE_ENV_FLAG=True):
