@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-from RL_Pizza_Delivery.algo.ppo import PPOAgent
-=======
 import argparse
 import numpy as np
 
@@ -43,4 +40,3 @@ if __name__ == "__main__":
     monitor_flag = True if args.s else False
     controller = Controller(env, model, properties, monitor_flag=monitor_flag)
     main(controller)
->>>>>>> alexy-dev
