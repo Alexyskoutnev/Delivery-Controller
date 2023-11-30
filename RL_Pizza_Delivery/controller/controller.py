@@ -5,6 +5,7 @@ import numpy as np
 import heapq
 
 from RL_Pizza_Delivery.env.env_obstacles import ENV_OBSTACLE
+from RL_Pizza_Delivery.controller.monitor import Monitor
 from RL_Pizza_Delivery.utils.buffer import ExperienceBuffer
 from RL_Pizza_Delivery.algo.qlearning import QAgent
 from RL_Pizza_Delivery.algo.ppo import PPOAgent
@@ -31,6 +32,8 @@ class Controller(object):
         self.max_itr = 100
         self.monitor = Monitor(self.current_pos, properties, self.map) if monitor_flag else None 
         self.path = []
+
+    def run(self):
         self._solve()
 
     def _solve(self):
@@ -43,6 +46,7 @@ class Controller(object):
                 action = self._safe_search()
                 if action == None:
                     break
+
             state = self._step(action)
             if self.monitor:
                 self.monitor.update(self.current_pos)
@@ -51,8 +55,8 @@ class Controller(object):
                 break
             
     def _step(self, action):
-        state, _, _, _ = env.step(action)
-        self.current_pos = env.current_pos
+        state, _, _, _ = self.env.step(action)
+        self.current_pos = self.env.current_pos
         return state
         
     def _hole(self, state):
@@ -159,7 +163,7 @@ if __name__ == "__main__":
     parser.add_argument("-m", "--model", type=str, default="./data/final_models/PPO_potholes-10_10_10.pt", help="Path to a model in /data/models")
     parser.add_argument("-c", "--config", type=str, default="PPO_MAP_10_10_HOLES_10.yaml", help="Path to a training config in /data/config")
     parser.add_argument("-a", "--agent", type=str, default="ppo", help="Path to a training config in /data/config")
-    # parser.add_argument("-m", "--monitor")
+    parser.add_argument('-s', action='store_true', help='When present, runtime monitor is implemented')
     args = parser.parse_args()
     agent_type = str(args.agent)
     config = load_yaml(args.config)
@@ -174,7 +178,7 @@ if __name__ == "__main__":
         type = 'ppo'
         load_model(args.model, model, type='ppo')
         properties = load_yaml(PROPERTY_CONFIG)
-    monitor_flag= True
+    monitor_flag = True if args.s else False
     controller = Controller(env, model, properties, monitor_flag=monitor_flag)
     
     

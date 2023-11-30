@@ -2,7 +2,6 @@ import torch
 import argparse
 
 from RL_Pizza_Delivery.env.env_obstacles import ENV_OBSTACLE
-from RL_Pizza_Delivery.controller.controller import Controller
 from RL_Pizza_Delivery.utils.buffer import ExperienceBuffer
 from RL_Pizza_Delivery.algo.qlearning import QAgent
 from RL_Pizza_Delivery.utils.torch_utils import save_model, save_frames, print_action, load_model, SAVE_DIR, load_yaml
@@ -14,7 +13,6 @@ class Monitor(object):
         self.step = 0
         self.map = map
         self.map_size = (len(map), len(map[0]))
-        breakpoint()
         self.update(init_state)
 
     def _hole(self, state):
@@ -25,10 +23,9 @@ class Monitor(object):
             print(f"[{self.step}]  {property} VIOLATIONS | {self.violations}")
 
     def _test(self, state):
-        if self.property['POTHOLES']:
-            inhole = self._hole(state)
-            if inhole:
-                return True
+        inhole = self._hole(state)
+        if inhole:
+            return True
         return False
 
     def update(self, state):
