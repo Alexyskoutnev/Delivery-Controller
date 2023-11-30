@@ -19,7 +19,7 @@ def load(env, path, model):
     model.net.load_state_dict(state_dict)
 
 class Controller(object):
-    def __init__(self, env, model, properties=None) -> None:
+    def __init__(self, env, model, properties=None, monitor_flag=False) -> None:
         self.model = model
         self.env = env
         self.init_state = env.reset()
@@ -29,6 +29,7 @@ class Controller(object):
         self.current_pos = env.get_pose
         self.goal_pos = env.get_goal
         self.max_itr = 100
+        self.monitor = Monitor(self.current_pos, properties, self.map) if monitor_flag else None 
         self.path = []
         self._solve()
 
@@ -43,6 +44,8 @@ class Controller(object):
                 if action == None:
                     break
             state = self._step(action)
+            if self.monitor:
+                self.monitor.update(self.current_pos)
             if np.array_equal(self.current_pos, self.goal_pos):
                 print("AT GOAL")
                 break
@@ -151,10 +154,12 @@ class Controller(object):
         return torch.tensor(obs, dtype=torch.float32)
 
 if __name__ == "__main__":
+    from RL_Pizza_Delivery.controller.monitor import Monitor
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--model", type=str, default="./data/final_models/PPO_potholes-10_10_10.pt", help="Path to a model in /data/models")
     parser.add_argument("-c", "--config", type=str, default="PPO_MAP_10_10_HOLES_10.yaml", help="Path to a training config in /data/config")
     parser.add_argument("-a", "--agent", type=str, default="ppo", help="Path to a training config in /data/config")
+    # parser.add_argument("-m", "--monitor")
     args = parser.parse_args()
     agent_type = str(args.agent)
     config = load_yaml(args.config)
@@ -169,6 +174,7 @@ if __name__ == "__main__":
         type = 'ppo'
         load_model(args.model, model, type='ppo')
         properties = load_yaml(PROPERTY_CONFIG)
-    controller = Controller(env, model, properties)
+    monitor_flag= True
+    controller = Controller(env, model, properties, monitor_flag=monitor_flag)
     
     
