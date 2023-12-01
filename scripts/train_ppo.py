@@ -30,6 +30,7 @@ def train(agent, env, config, writer, device='cpu'):
         total_reward = 0.0
         next_obs = torch.tensor(env.reset(), dtype=torch.float32).to(device)
         next_done = torch.zeros(1, dtype=torch.float32).to(device)
+        cnt_done = 1
         if config['annealing']:
             frac = 1.0 - (update - 1.0) / num_updates
             lrnow = frac * config['lr']
@@ -48,6 +49,8 @@ def train(agent, env, config, writer, device='cpu'):
             rewards[step] = torch.tensor(reward).to(device).view(-1)
             next_obs = torch.tensor(next_obs, dtype=torch.float32).to(device)
             next_done = torch.tensor(done, dtype=torch.int).to(device)
+            if done:
+                cnt_done += 1
             with torch.no_grad():
                 next_value = agent.get_value(next_obs).reshape(1, -1)
                 advantages = torch.zeros_like(rewards).to(device)
@@ -62,8 +65,11 @@ def train(agent, env, config, writer, device='cpu'):
                     delta = rewards[t] + config['gamma'] * nextvalues * nextnonterminal - values[t]
                     advantages[t] = lastgaelam = delta + config['gamma'] * config['gae_lambda'] * nextnonterminal * lastgaelam
                 returns = advantages + values
-        average_rewards.append(total_reward)
+        average_rewards.append(total_reward / cnt_done)
         average_return.append(returns)
+        #================ Logging ===============================
+        writer.add_scalar("total reward", total_reward, global_step)
+        writer.add_scalar("average reward", np.mean(average_rewards[-100:]), global_step)
         #================ Batch of Experience ===================
         b_obs = obs.reshape((-1, ) + (env.observation_dim,))
         b_logprobs = logprobs.reshape(-1)
@@ -96,6 +102,8 @@ def train(agent, env, config, writer, device='cpu'):
             if config['record_vid']:
                 save_frames(buf, name="PPO_")
         #================ Logging ================ 
+        writer.add_scalar("critic_loss", v_loss.item(), global_step)
+        writer.add_scalar("actor_loss", pg_loss.item(), global_step)
         if update % config['EVAL_ITR'] == 0:
             print(f"[{global_step}] Mean Reward: {np.mean(average_rewards[-100:]):.3f}")
             print(f"[{global_step}] Mean Return: {np.mean(average_return[-100:]):.3f}")
@@ -109,7 +117,7 @@ def train(agent, env, config, writer, device='cpu'):
 if __name__ == "__main__":
     writer = SummaryWriter(comment='-PPO')
     parser = argparse.ArgumentParser()
-    parser.add_argument("-c", "--config", type=str, default="PPO_MAP_5_5_HOLES_0.yaml", help="Path to a training config in /data/config")
+    parser.add_argument("-c", "--config", type=str, default="PPO_MAP_10_10_HOLES_10.yaml", help="Path to a training config in /data/config")
     args = parser.parse_args()
     config = load_yaml(args.config)
     config['device'] = get_device()

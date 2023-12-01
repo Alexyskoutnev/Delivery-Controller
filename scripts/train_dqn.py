@@ -17,6 +17,7 @@ from RL_Pizza_Delivery.utils.torch_utils import save_model, save_frames, load_ya
 def eval(agent, env, config, frameid):
     buf = []
     eval_total_rewards = 0.0
+    eval_rewards = []
     state = env.reset()
     for i in range(config['eval_steps']):
         if config['render_mode'] == 'rgb_array':
@@ -29,9 +30,11 @@ def eval(agent, env, config, frameid):
         eval_total_rewards += reward
         if done:
             state = env.reset()
+            eval_rewards.append(eval_total_rewards)
+            eval_total_rewards = 0.0
             buf.append(env.render())
     print("====================== EVALUALTION ======================")
-    print(f"{frameid}: reward [{eval_total_rewards:.3f}] \t")
+    print(f"{frameid}: reward [{np.mean(eval_rewards):.3f}] \t")
     if config['record_vid']:
         save_frames(buf, name="DQN_")
 
@@ -65,6 +68,7 @@ def train(agent, env, buffer, writer=None, config=None):
             agent.net_target.load_state_dict(agent.net.state_dict())
         batch = buffer.sample(config['BATCH_SIZE'])
         loss = agent.update(batch)
+        writer.add_scalar("loss", loss.item(), frame_idx)
         #================ Backprob Update ======================        
         #================ Logging Update =======================
         if frame_idx % config['print_itr'] == 0:

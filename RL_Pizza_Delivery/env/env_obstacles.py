@@ -35,9 +35,7 @@ class ENV_OBSTACLE(ENV_BASE):
         self._timestep = 0
         self._holes, self._traffic_jams = set(), set()
         _i = 0
-        # self.current_pos = self.np_random.integers(0, self.size, size=2, dtype=int)
-        self.current_pos = np.array([0, 0], dtype=int)
-        # self.goal_pos = self.current_pos
+        self.current_pos = self.np_random.integers(0, self.size, size=2, dtype=int)
         self.goal_pos = np.array([self.map_size[0] - 1, self.map_size[0] - 1])
         while np.array_equal(self.goal_pos, self.current_pos):
             self.current_pos = self.np_random.integers(0, self.size, size=2, dtype=int)
@@ -144,7 +142,6 @@ class ENV_OBSTACLE(ENV_BASE):
     @property
     def get_goal(self):
         return self.goal_pos
-        
 
     def _get_observation(self):
         """
@@ -158,23 +155,9 @@ class ENV_OBSTACLE(ENV_BASE):
         self._render_observation = np.zeros(self.map_size)
         agent_obs = np.array([self.current_pos[0] * self.map_size[0] + self.current_pos[1] * self.map_size[1]], dtype=np.float32)
         goal_obs = np.array([self.goal_pos[0] * self.map_size[0] + self.goal_pos[1] * self.map_size[1]], dtype=np.float32)
-        # observation[self.current_pos[0], self.current_pos[1]] = OBJECTS.CURRENT
-        # self._render_observation[self.current_pos[0], self.current_pos[1]] = OBJECTS.CURRENT
-        # self._render_observation[self.goal_pos[0], self.goal_pos[1]] = OBJECTS.GOAL
-        # observation[self.goal_pos[0], self.goal_pos[1]] = OBJECTS.GOAL
         for hole in self._holes:
             observation[hole[0], hole[1]] = 1
             self._render_observation[hole[0], hole[1]] = 1
-            
-            # if hole == tuple(self.current_pos):
-            #     self._render_observation[hole[0], hole[1]] = OBJECTS.POTHOLE_N_CURRENT
-            # else:
-            #     self._render_observation[hole[0], hole[1]] = OBJECTS.POTHOLE
-                
-                # observation[hole[0], hole[1]] = OBJECTS.POTHOLE_N_CURRENT
-                # observation[hole[0], hole[1]] = 1
-            # else:
-                # observation[hole[0], hole[1]] = OBJECTS.POTHOLE
         for traffic_jam in self._traffic_jams:
             if traffic_jam in tuple(self.current_pos):
                 observation[traffic_jam[0], traffic_jam[1]] = OBJECTS.TRAFFIC_JAM_N_CURRENT
@@ -185,70 +168,4 @@ class ENV_OBSTACLE(ENV_BASE):
         return observation
 
 if __name__ == "__main__":
-     # Training parameters
-    potholes, traffic_jams = 0, 0
-    map_size = (5, 5)
-    render_mode = 'None'
-    # render_mode = 'human'
-    grid_size = 5
-    state_size = grid_size * grid_size
-    action_size = 4
-    learning_rate = 0.0001
-    gamma = 0.99
-    epsilon_decay = 0.95
-    epsilon_min = 0.01
-    episodes = 1000
-    max_moves = grid_size * 10
-    GAMMA = 0.99
-    BATCH_SIZE = 32
-    REPLAY_SIZE = 10000
-    LEARNING_RATE = 1e-4
-    SYNC_TARGET_FRAMES = 1000
-    REPLAY_START_SIZE = 10000
-
-    EPSILON_DECAY_LAST_FRAME = 100000
-    EPSILON_START = 1.0
-    EPSILON_FINAL = 0.01
-
-    env = ENV_OBSTACLE(map_size= map_size, render_mode=render_mode, potholes=potholes, traffic_jams=traffic_jams)
-    input_size, output_size = env.observation_dim, env.action_dim
-    buffer = ExperienceBuffer(REPLAY_SIZE)
-    agent = QAgent(env, buffer, lr=learning_rate, gamma=gamma)
-    epsilon = EPSILON_START
-    total_rewards = []
-    frame_idx = 0
-    ts_frame = 0
-    ts = time.time()
-
-    writer = SummaryWriter(comment="-")
-
-    while True:
-        frame_idx += 1
-        epsilon = max(EPSILON_FINAL, EPSILON_START -
-                        frame_idx / EPSILON_DECAY_LAST_FRAME)
-
-        reward = agent.play_step(epsilon) 
-
-        if reward is not None:
-            total_rewards.append(reward)
-            speed = (frame_idx - ts_frame) / (time.time() - ts)
-            ts_frame = frame_idx
-            ts = time.time()
-            m_reward = np.mean(total_rewards[-100:])
-            print("%d: done %d games, reward %.3f, "
-                  "eps %.2f, speed %.2f f/s" % (
-                frame_idx, len(total_rewards), m_reward, epsilon,
-                speed
-            ))
-            writer.add_scalar("epsilon", epsilon, frame_idx)
-            writer.add_scalar("speed", speed, frame_idx)
-            writer.add_scalar("reward_100", m_reward, frame_idx)
-            writer.add_scalar("reward", reward, frame_idx)
-
-        if len(buffer) < REPLAY_START_SIZE:
-            continue
-        if frame_idx % SYNC_TARGET_FRAMES == 0:
-            agent.net_target.load_state_dict(agent.net.state_dict())
-        batch = buffer.sample(BATCH_SIZE)
-        loss = agent.update(batch)
-        writer.add_scalar("loss", loss, frame_idx)
+    pass

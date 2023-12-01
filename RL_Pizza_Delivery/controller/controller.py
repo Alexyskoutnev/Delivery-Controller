@@ -46,7 +46,6 @@ class Controller(object):
                 action = self._safe_search()
                 if action == None:
                     break
-
             state = self._step(action)
             if self.monitor:
                 self.monitor.update(self.current_pos)
