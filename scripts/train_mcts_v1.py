@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 
-from RL_Pizza_Delivery.algo.MCTS import MCTS
+from RL_Pizza_Delivery.algo.mcts_old import MCTS
 from RL_Pizza_Delivery.env.env_obstacles import ENV_OBSTACLE
 
 
