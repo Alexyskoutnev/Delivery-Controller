@@ -1,6 +1,6 @@
 total_timesteps : 500000
 map_size : [10, 10]
-potholes : 2
+potholes : 4
 traffic_jams : 0
 render_mode : rgb_array
 GAMMA : 0.99

@@ -9,7 +9,7 @@ from tensorboardX import SummaryWriter
 
 from RL_Pizza_Delivery.env.env_obstacles import ENV_OBSTACLE
 from RL_Pizza_Delivery.algo.ppo import PPOAgent
-from RL_Pizza_Delivery.utils.torch_utils import load_yaml, get_device, save_model
+from RL_Pizza_Delivery.utils.torch_utils import load_yaml, get_device, save_model, save_frames
 
 def train(agent, env, config, writer, device='cpu'):
     global_step = 0
@@ -22,11 +22,18 @@ def train(agent, env, config, writer, device='cpu'):
     values = torch.zeros((config['num_steps'],), dtype=torch.float32).to(device)
     next_obs = torch.tensor(env.reset(), dtype=torch.float32).to(device)
     next_done = torch.zeros(1, dtype=torch.float32).to(device)
-    average_returns = []
+    average_rewards = []
+    average_return = []
     #Storage Setup
     num_updates = config['total_timestep'] // config['batchs']
     for update in range(1, num_updates + 1):
         total_reward = 0.0
+        next_obs = torch.tensor(env.reset(), dtype=torch.float32).to(device)
+        next_done = torch.zeros(1, dtype=torch.float32).to(device)
+        if config['annealing']:
+            frac = 1.0 - (update - 1.0) / num_updates
+            lrnow = frac * config['lr']
+            agent.optimizer.param_groups[0]['lr'] = lrnow
         for step in range(0, config['num_steps']):
             global_step += 1
             obs[step] = next_obs
@@ -43,18 +50,20 @@ def train(agent, env, config, writer, device='cpu'):
             next_done = torch.tensor(done, dtype=torch.int).to(device)
             with torch.no_grad():
                 next_value = agent.get_value(next_obs).reshape(1, -1)
-                returns = torch.zeros_like(rewards).to(device)
+                advantages = torch.zeros_like(rewards).to(device)
+                lastgaelam = 0
                 for t in reversed(range(config['num_steps'])):
                     if t == config['num_steps'] - 1:
                         nextnonterminal = 1.0 - next_done
-                        next_return = next_value
+                        nextvalues = next_value
                     else:
                         nextnonterminal = 1.0 - dones[t + 1]
-                        next_return = returns[t + 1]
-                    returns[t] = rewards[t] + config['gamma'] * nextnonterminal * next_return
-                advantages = returns - values
-        
-        average_returns.append(total_reward)
+                        nextvalues = values[t + 1]
+                    delta = rewards[t] + config['gamma'] * nextvalues * nextnonterminal - values[t]
+                    advantages[t] = lastgaelam = delta + config['gamma'] * config['gae_lambda'] * nextnonterminal * lastgaelam
+                returns = advantages + values
+        average_rewards.append(total_reward)
+        average_return.append(returns)
         #================ Batch of Experience ===================
         b_obs = obs.reshape((-1, ) + (env.observation_dim,))
         b_logprobs = logprobs.reshape(-1)
@@ -65,13 +74,35 @@ def train(agent, env, config, writer, device='cpu'):
         b_indx = np.arange(config['batchs'])
         #================ Batch of Experience ===================
         v_loss, pg_loss, loss = agent.update(b_obs, b_logprobs, b_actions, b_advantages, b_returns, b_values)
+        if update % config['EVAL_ITR'] == 0:
+            state = env.reset()
+            buf = list()
+            eval_total_rewards = []
+            eval_total_reward = 0.0
+            for i in range(100):
+                if config['render_mode'] == 'rgb_array':
+                    buf.append(env.render())
+                action, prob, entropy, value = agent.get_action_and_value(torch.tensor(state, dtype=torch.float32).view(1, -1))
+                next_state, reward, done, _ = env.step(action.cpu().numpy())
+                state = next_state
+                eval_total_reward += reward
+                if done:
+                    buf.append(env.render())
+                    eval_total_rewards.append(eval_total_reward)
+                    eval_total_reward = 0.0
+                    state = env.reset()
+            print("====================== EVALUALTION ======================")
+            print(f"{global_step}: Epoch [{update}/{num_updates} : reward [{np.mean(eval_total_rewards):.3f}] \t")
+            if config['record_vid']:
+                save_frames(buf, name="PPO_")
         #================ Logging ================ 
-        print(f"[{global_step}] Mean Reward: {np.mean(average_returns[-100:]):.3f}")
-        print(f"[{global_step}] Value Loss : {v_loss.item():.3f}")
-        print(f"[{global_step}] Critic Loss : {pg_loss.item():.3f}")
+        if update % config['EVAL_ITR'] == 0:
+            print(f"[{global_step}] Mean Reward: {np.mean(average_rewards[-100:]):.3f}")
+            print(f"[{global_step}] Mean Return: {np.mean(average_return[-100:]):.3f}")
+            print(f"[{global_step}] Value Loss : {v_loss.item():.3f}")
+            print(f"[{global_step}] Critic Loss : {pg_loss.item():.3f}")
         #================ Logging ================ 
-    save_model(agent.critic, config, name="PPO-critic")
-    save_model(agent.actor, config, name="PPO-actor" )
+    save_model(agent, config, name="PPO", type='ppo')
     env.close()
     writer.close()
 
@@ -82,6 +113,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     config = load_yaml(args.config)
     config['device'] = get_device()
+    print("============ CONFIG ================")
+    print(config)
     device = get_device()
     env = ENV_OBSTACLE(map_size=config['map_size'], render_mode=config['render_mode'], potholes=config['potholes'], traffic_jams=config['traffic_jams'])
     agent = PPOAgent(env, config)

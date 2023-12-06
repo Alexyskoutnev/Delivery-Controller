@@ -1,13 +1,13 @@
-total_timesteps : 500000
-map_size : [10, 10]
-potholes : 2
+total_timesteps : 200000
+map_size : [5, 5]
+potholes : 4
 traffic_jams : 0
 render_mode : rgb_array
 GAMMA : 0.99
-BATCH_SIZE : 32
+BATCH_SIZE : 64
 REPLAY_SIZE : 10000
 LR : 0.001
-SYNC_TARGET_FRAMES : 5000
+SYNC_TARGET_FRAMES : 1000
 REPLAY_START_SIZE : 10000
 EPSILON_START : 1.0
 EPSILON_FINAL : 0.01

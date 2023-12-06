@@ -38,3 +38,4 @@ pizza/
 /data/videos/*
 */runs/*
 *.mp4
+/runs/*

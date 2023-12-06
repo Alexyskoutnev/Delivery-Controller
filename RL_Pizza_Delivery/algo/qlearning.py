@@ -19,7 +19,7 @@ class QNetwork(nn.Module):
         return x
 
 class QAgent(object):
-    def __init__(self, env, buffer, lr=0.001, gamma=0.99, epsilon=0.1) -> None:
+    def __init__(self, env, buffer=None, lr=0.001, gamma=0.99, epsilon=0.1) -> None:
         self.env = env
         self.input_size = env.observation_dim
         self.output_size = env.action_dim
