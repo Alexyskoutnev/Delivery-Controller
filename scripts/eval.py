@@ -7,7 +7,19 @@ from RL_Pizza_Delivery.algo.qlearning import QAgent
 from RL_Pizza_Delivery.algo.ppo import PPOAgent
 from RL_Pizza_Delivery.utils.torch_utils import save_model, save_frames, print_action, load_model, load_yaml
 
-def eval(agent, env, config=None, type='dqn'):
+def eval(agent : QAgent, env : ENV_OBSTACLE, config : dict = None, type : str = 'ppo'):
+    """
+    Evaluate the specified agent in the given environment.
+
+    Parameters:
+    - agent (QAgent): The reinforcement learning agent to be evaluated.
+    - env (ENV_OBSTACLE): The environment in which the agent is evaluated.
+    - config (dict, optional): Configuration parameters for evaluation. Defaults to None.
+    - type (str, optional): The type of agent ('dqn' or 'ppo'). Defaults to 'ppo'.
+
+    Returns:
+    None
+    """
     state = env.reset()
     buf = list()
     eval_total_rewards = 0
@@ -33,9 +45,9 @@ def eval(agent, env, config=None, type='dqn'):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-m", "--model", type=str, default="../data/models/DQN-2023-11-27 13:49:59.521207.pt", help="Path to a model in /data/models")
-    parser.add_argument("-c", "--config", type=str, default="DQN_MAP_5_5_HOLES_0.yaml", help="Path to a training config in /data/config")
-    parser.add_argument("-a", "--agent", type=str, default="dqn", help="Path to a training config in /data/config")
+    parser.add_argument("-m", "--model", type=str, default="./data/models/PPO_potholes-4_10_10.pt", help="Path to a model in /data/models")
+    parser.add_argument("-c", "--config", type=str, default="PPO_MAP_10_10_HOLES_4.yaml", help="Path to a training config in /data/config")
+    parser.add_argument("-a", "--agent", type=str, default="ppo", help="Path to a training config in /data/config")
     args = parser.parse_args()
     agent_type = str(args.agent)
     config = load_yaml(args.config)

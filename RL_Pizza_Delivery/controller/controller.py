@@ -12,7 +12,6 @@ from RL_Pizza_Delivery.algo.ppo import PPOAgent
 from RL_Pizza_Delivery.utils.torch_utils import save_model, save_frames, print_action, load_model, SAVE_DIR, load_yaml
 
 MODEL_DIR = "./data/final_models/"
-PROPERTY_CONFIG = "controller.yaml"
 
 def load(env, path, model):
     path = os.path.join(MODEL_DIR, path)
@@ -21,6 +20,15 @@ def load(env, path, model):
 
 class Controller(object):
     def __init__(self, env, model, properties=None, monitor_flag=False) -> None:
+        """
+        Controller class for controlling an agent using a specified model.
+
+        Parameters:
+        - env: The environment.
+        - model: The model used for control.
+        - properties: Optional dictionary specifying properties to monitor.
+        - monitor_flag: Flag to enable or disable monitoring.
+        """
         self.model = model
         self.env = env
         self.init_state = env.reset()
@@ -34,9 +42,11 @@ class Controller(object):
         self.path = []
 
     def run(self):
+        """Run the controller to solve the task."""
         self._solve()
 
     def _solve(self):
+        """Internal method to solve the task."""
         _itr = 0
         state = self.init_state
         while (_itr < self.max_itr):
@@ -54,14 +64,34 @@ class Controller(object):
                 break
             
     def _step(self, action):
+        """
+        Perform an action in the environment and update the current position.
+
+        Parameters:
+        - action: The action to perform.
+
+        Returns:
+        - state: The new state after performing the action.
+        """
         state, _, _, _ = self.env.step(action)
         self.current_pos = self.env.current_pos
         return state
         
     def _hole(self, state):
+        """Check if the current state is a hole."""
         return True if self.map[state[0]][state[1]] == 1. else False
 
     def _test(self, action):
+        """
+        Test if the current action leads to a violation of a specified property.
+
+        Parameters:
+        - action: The action to test.
+
+        Returns:
+        - bool: True if a violation is detected, False otherwise.
+        """
+
         if self.property['POTHOLES']:
             next_state = self._lookahead(action, update=False)
             inhole = self._hole(next_state)
@@ -72,6 +102,16 @@ class Controller(object):
         return False
     
     def _compute_action(self, prev_state, state):
+        """
+        Compute the action needed to transition from a previous state to the current state.
+
+        Parameters:
+        - prev_state: The previous state.
+        - state: The current state.
+
+        Returns:
+        - action: The computed action.
+        """
         prev_state = np.array(prev_state)
         state = np.array(state)
         diff = state - prev_state
@@ -89,6 +129,12 @@ class Controller(object):
         return action
 
     def _safe_search(self):
+        """
+        Perform a safe search using A* algorithm to find a safe path.
+
+        Returns:
+        - action: The computed action for the safe path.
+        """
         path = self.astar(self.map.tolist(), tuple(self.current_pos), tuple(self.goal_pos))
         if len(path) >= 2:
             next_state = path[1]
@@ -139,45 +185,34 @@ class Controller(object):
         return []  # No path found
 
     def _lookahead(self, action, update=False):
+        """
+        Compute the next position based on the given action.
+
+        Parameters:
+        - action: The action to be taken.
+
+        Returns:
+        - current_pos: The computed next position.
+        """
         if action == 0: #UP
             current_pos = max(0, self.current_pos[0] - 1), self.current_pos[1]
         elif action == 1: #Down
             current_pos = min(self.map_size[0] -1, self.current_pos[0] + 1), self.current_pos[1]
-        elif action == 2: #left
+        elif action == 2: #Left
             current_pos = self.current_pos[0], max(0, self.current_pos[1] - 1)
-        elif action == 3:
+        elif action == 3: #Right
             current_pos = self.current_pos[0], min(self.map_size[1] - 1, self.current_pos[1] + 1)
         return current_pos
 
     def _state(self):
+        """
+        Get the current state representation.
+
+        Returns:
+        - torch.tensor: The tensor representing the current state.
+        """
         agent_obs = np.array([self.current_pos[0] * self.map_size[0] + self.current_pos[1] * self.map_size[1]], dtype=np.float32)
         goal_obs = np.array([self.goal_pos[0] * self.map_size[0] + self.goal_pos[1] * self.map_size[1]], dtype=np.float32)
         map_obs = np.transpose(self.map).flatten()
         obs = np.concatenate((agent_obs, goal_obs, map_obs))
         return torch.tensor(obs, dtype=torch.float32)
-
-if __name__ == "__main__":
-    from RL_Pizza_Delivery.controller.monitor import Monitor
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-m", "--model", type=str, default="./data/final_models/PPO_potholes-10_10_10.pt", help="Path to a model in /data/models")
-    parser.add_argument("-c", "--config", type=str, default="PPO_MAP_10_10_HOLES_10.yaml", help="Path to a training config in /data/config")
-    parser.add_argument("-a", "--agent", type=str, default="ppo", help="Path to a training config in /data/config")
-    parser.add_argument('-s', action='store_true', help='When present, runtime monitor is implemented')
-    args = parser.parse_args()
-    agent_type = str(args.agent)
-    config = load_yaml(args.config)
-    env = ENV_OBSTACLE(map_size=config['map_size'], render_mode=config['render_mode'], potholes=config['potholes'], traffic_jams=config['traffic_jams'])
-    if agent_type == 'dqn':
-        buffer = ExperienceBuffer(config['REPLAY_SIZE'])
-        type = 'dqn'
-        agent = QAgent(env, buffer, lr=config['LR'], gamma=config['GAMMA'])
-        load_model(args.model, agent, type='dqn')
-    elif agent_type == 'ppo':
-        model = PPOAgent(env, config)
-        type = 'ppo'
-        load_model(args.model, model, type='ppo')
-        properties = load_yaml(PROPERTY_CONFIG)
-    monitor_flag = True if args.s else False
-    controller = Controller(env, model, properties, monitor_flag=monitor_flag)
-    
-    

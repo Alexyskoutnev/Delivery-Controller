@@ -11,7 +11,21 @@ from RL_Pizza_Delivery.env.env_obstacles import ENV_OBSTACLE
 from RL_Pizza_Delivery.algo.ppo import PPOAgent
 from RL_Pizza_Delivery.utils.torch_utils import load_yaml, get_device, save_model, save_frames
 
-def train(agent, env, config, writer, device='cpu'):
+def train(agent : PPOAgent, env : ENV_OBSTACLE, config : dict,
+          writer : SummaryWriter, device : dict = 'cpu'):
+    """
+    Train a Proximal Policy Optimization (PPO) agent in the specified environment.
+
+    Parameters:
+    - agent (PPOAgent): The PPO agent to be trained.
+    - env (ENV_OBSTACLE): The environment in which the agent is trained.
+    - config (dict): Configuration parameters for training.
+    - writer (SummaryWriter): TensorBoard SummaryWriter for logging.
+    - device (str, optional): The device on which the training is performed ('cpu' or 'cuda'). Defaults to 'cpu'.
+
+    Returns:
+    None
+    """
     global_step = 0
     #Storage Setup
     obs = torch.zeros((config['num_steps'],) + (env.observation_dim,), dtype=torch.float32).to(device)
@@ -115,15 +129,31 @@ def train(agent, env, config, writer, device='cpu'):
     writer.close()
 
 if __name__ == "__main__":
+    # TensorBoard writer setup
     writer = SummaryWriter(comment='-PPO')
+
+    # Parse command-line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", type=str, default="PPO_MAP_10_10_HOLES_10.yaml", help="Path to a training config in /data/config")
     args = parser.parse_args()
+
+    # Load configuration from YAML file
     config = load_yaml(args.config)
     config['device'] = get_device()
+
+    # Display loaded configuration
     print("============ CONFIG ================")
     print(config)
+
+    # Set device for training
     device = get_device()
-    env = ENV_OBSTACLE(map_size=config['map_size'], render_mode=config['render_mode'], potholes=config['potholes'], traffic_jams=config['traffic_jams'])
+
+    # Initialize environment
+    env = ENV_OBSTACLE(map_size=config['map_size'], render_mode=config['render_mode'],
+                       potholes=config['potholes'], traffic_jams=config['traffic_jams'])
+
+    # Initialize PPO agent
     agent = PPOAgent(env, config)
+
+    # Train the agent
     train(agent, env, config, writer, device)

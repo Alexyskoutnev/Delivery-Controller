@@ -2,16 +2,17 @@ from setuptools import setup, find_packages
 
 setup(
     name='RL_Pizza_Delivery',
-    version='0.0.1',
-    packages=find_packages(),  # This will automatically discover and include all packages
+    version='0.1.0',
+    packages=find_packages(),
     install_requires=[
-        # List your dependencies here
         'numpy',
         'matplotlib',
         'torch',
-        'pygame'
+        'pygame',
+        'argparse',
+        'tensorboardX'
     ],
     author='Alexy Skoutnev, Oluwatito Ebiwonjumi',
     author_email='alexy.a.skoutnev@vanderbilt.edu',
-    description='Pizza Delivery planning controller with safety properties',
+    description='Simplex based controller train by a PPO Reinforcement Learning policy',
 )

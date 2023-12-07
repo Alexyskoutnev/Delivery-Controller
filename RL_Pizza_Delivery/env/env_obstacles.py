@@ -1,10 +1,6 @@
 import numpy as np
 import pygame
-import torch
-import torch.nn as nn
-import torch.optim as optim
 import time
-from tensorboardX import SummaryWriter
 
 from RL_Pizza_Delivery.env.env import ENV_BASE
 from RL_Pizza_Delivery.visual.assets import COLOR, OBJECTS
@@ -14,6 +10,16 @@ from RL_Pizza_Delivery.algo.qlearning import QAgent
 
 class ENV_OBSTACLE(ENV_BASE):
     def __init__(self, potholes=0, traffic_jams=0, map_size=..., render_mode=None, seed=1):
+        """
+        Initialize the ENV_OBSTACLE environment.
+
+        Args:
+            potholes (int): Number of potholes in the environment.
+            traffic_jams (int): Number of traffic jams in the environment.
+            map_size (tuple): Size of the 2D map (rows, columns).
+            render_mode (str): Rendering mode ("human_mode" or "rgb_array").
+            seed (int): Seed for random number generation.
+        """
         super().__init__(map_size, render_mode, seed, BASE_ENV_FLAG=False)
         self.num_potholes = potholes
         self.num_traffic_jams = traffic_jams
@@ -25,13 +31,31 @@ class ENV_OBSTACLE(ENV_BASE):
 
     @property
     def observation_dim(self):
+        """
+        Returns the dimensionality of the observation space.
+
+        Returns:
+            int: Dimensionality of the observation space.
+        """
         return (self.map_size[0] * self.map_size[1]) + 2
     
     @property
     def action_dim(self):
+        """
+        Returns the dimensionality of the action space.
+
+        Returns:
+            int: Dimensionality of the action space.
+        """
         return 4
 
     def reset(self):
+        """
+        Reset the environment to its initial state.
+
+        Returns:
+            np.ndarray: Initial observation of the environment.
+        """
         self._timestep = 0
         self._holes, self._traffic_jams = set(), set()
         _i = 0
@@ -65,8 +89,16 @@ class ENV_OBSTACLE(ENV_BASE):
         return self._get_observation()
 
     def _render_frame(self):
-        super()._render_frame()
+        """
+        Render a single frame of the environment.
 
+        Renders obstacles, potholes, and traffic jams on the frame.
+
+        Returns:
+            np.ndarray or None: If the rendering mode is "rgb_array," returns the rendered frame as a NumPy array.
+                Otherwise, returns None.
+        """
+        super()._render_frame()
         for idx in range(self.num_potholes):
             if np.array_equal(self.current_pos, self.holes[idx]):
                 pygame.draw.circle(self.canvas, COLOR.gray, (self.holes[idx] + 0.5) * self.pix_square_size, self.pix_square_size / 3,)  # Draw a gray circle for the pothole
@@ -114,9 +146,9 @@ class ENV_OBSTACLE(ENV_BASE):
             self.current_pos = max(0, self.current_pos[0] - 1), self.current_pos[1]
         elif action == 1: #Down
             self.current_pos = min(self.map_size[0] -1, self.current_pos[0] + 1), self.current_pos[1]
-        elif action == 2: #left
+        elif action == 2: #Left
             self.current_pos = self.current_pos[0], max(0, self.current_pos[1] - 1)
-        elif action == 3:
+        elif action == 3: #Right
             self.current_pos = self.current_pos[0], min(self.map_size[1] - 1, self.current_pos[1] + 1)
         self.current_pos = np.array(self.current_pos, dtype=int)
         done = np.array_equal(self.current_pos, self.goal_pos) or self._max_times <= self._timestep
@@ -125,7 +157,6 @@ class ENV_OBSTACLE(ENV_BASE):
         pothole_reward = REWARDS.POTHOLE if current_pos_tup in self._holes else 0.0
         goal_reward = (self.map_size[0] * REWARDS.AT_GOAL) if done and self._timestep < self._max_times else 0.0
         reward = -REWARDS.SCALE_DIST*(np.sqrt((self.current_pos[0] - self.goal_pos[0])**2) + (self.current_pos[1] - self.goal_pos[1])**2) + pothole_reward + goal_reward
-        # reward = -0.1 + goal_reward + pothole_reward
         #==============REWARDS================================#
         if self.render_mode == 'human':
             self._render_frame()
@@ -133,14 +164,32 @@ class ENV_OBSTACLE(ENV_BASE):
 
     @property
     def get_map(self):
+        """
+        Get the map of the environment.
+
+        Returns:
+            np.ndarray: The map of the environment.
+        """
         return self._render_observation
 
     @property
     def get_pose(self):
+        """
+        Get the current position of the agent.
+
+        Returns:
+            tuple: The current position of the agent (row, column).
+        """
         return self.current_pos
 
     @property
     def get_goal(self):
+        """
+        Get the goal position of the agent.
+
+        Returns:
+            tuple: The goal position of the agent (row, column).
+        """
         return self.goal_pos
 
     def _get_observation(self):
@@ -166,6 +215,3 @@ class ENV_OBSTACLE(ENV_BASE):
         observation = np.transpose(observation).flatten()
         observation = np.concatenate((agent_obs, goal_obs, observation))
         return observation
-
-if __name__ == "__main__":
-    pass

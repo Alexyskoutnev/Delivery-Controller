@@ -14,7 +14,19 @@ from RL_Pizza_Delivery.utils.buffer import ExperienceBuffer
 from RL_Pizza_Delivery.algo.qlearning import QAgent
 from RL_Pizza_Delivery.utils.torch_utils import save_model, save_frames, load_yaml
 
-def eval(agent, env, config, frameid):
+def eval(agent : QAgent, env : ENV_OBSTACLE, config : dict, frameid : int):
+    """
+    Evaluate the specified Q-learning agent in the given environment.
+
+    Parameters:
+    - agent (QAgent): The Q-learning agent to be evaluated.
+    - env (ENV_OBSTACLE): The environment in which the agent is evaluated.
+    - config (dict): Configuration parameters for evaluation.
+    - frameid (int): Identifier for the evaluation frame or iteration.
+
+    Returns:
+    None
+    """
     buf = []
     eval_total_rewards = 0.0
     eval_rewards = []
@@ -38,7 +50,20 @@ def eval(agent, env, config, frameid):
     if config['record_vid']:
         save_frames(buf, name="DQN_")
 
-def train(agent, env, buffer, writer=None, config=None):
+def train(agent : QAgent, env : ENV_OBSTACLE, buffer : ExperienceBuffer, writer : SummaryWriter = None, config : dict = None):
+    """
+    Train the specified Q-learning agent using experience replay.
+
+    Parameters:
+    - agent (QAgent): The Q-learning agent to be trained.
+    - env (ENV_OBSTACLE): The environment in which the agent is trained.
+    - buffer (ExperienceBuffer): The experience replay buffer.
+    - writer (SummaryWriter, optional): TensorBoard SummaryWriter for logging. Defaults to None.
+    - config (dict, optional): Configuration parameters for training. Defaults to None.
+
+    Returns:
+    None
+    """
     epsilon = config['EPSILON_START']
     total_rewards = []
     frame_idx = 0

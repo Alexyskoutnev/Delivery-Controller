@@ -9,30 +9,44 @@ from tensorboardX import SummaryWriter
 from RL_Pizza_Delivery.env.env_obstacles import ENV_OBSTACLE
 
 def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
+    """
+    Initialize the weights and bias of a neural network layer.
+
+    Parameters:
+    - layer: The neural network layer to be initialized.
+    - std: The standard deviation for weight initialization. Defaults to np.sqrt(2).
+    - bias_const: The constant value for bias initialization. Defaults to 0.0.
+
+    Returns:
+    - layer: The initialized layer.
+    """
     torch.nn.init.orthogonal_(layer.weight, std)
     torch.nn.init.constant_(layer.bias, bias_const)
     return layer
 
 class PPOAgent(nn.Module):
     def __init__(self, env, config=None):
+        """
+        Proximal Policy Optimization (PPO) agent class.
+
+        Parameters:
+        - env: The environment in which the agent operates.
+        - config (dict, optional): Configuration parameters for the agent. Defaults to None.
+        """
         super().__init__()
         self.obs_size = env.observation_dim
         self.action_size = env.action_dim
         self.critic = nn.Sequential(
             layer_init(nn.Linear(self.obs_size, 64)),
-            # nn.ReLU(),
             nn.Tanh(),
             layer_init(nn.Linear(64, 64)),
-            # nn.ReLU(),
             nn.Tanh(),
             layer_init(nn.Linear(64, 1), std=1.0),
         )
         self.actor = nn.Sequential(
             layer_init(nn.Linear(self.obs_size, 64)),
-            # nn.ReLU(),
             nn.Tanh(),
             layer_init(nn.Linear(64, 64)),
-            # nn.ReLU(),
             nn.Tanh(),
             layer_init(nn.Linear(64, self.action_size), std=0.01)
         )
@@ -43,16 +57,42 @@ class PPOAgent(nn.Module):
         self.entropy_coef = config['entropy_coef']
         self.optimizer = optim.Adam(self.parameters(), config['lr'], eps=1e-5)
     
-    def get_value(self, x):
+    def get_value(self, x : torch.Tensor) -> torch.Tensor:
+        """Get the critic value based on the sate
+
+        Args:
+            x (torch.Tensor): Current state that the agent is in
+
+        Returns:
+            torch.Tensor: The value based on the state input
+        """
         return self.critic(x)
 
-    def forward(self, x):
+    def forward(self, x : torch.Tensor) -> torch.Tensor:
+        """Forward function for the neural network
+
+        Args:
+            x (torch.Tensor): Current state that the agent is in
+
+        Returns:
+            torch.Tensor: Action from the agent
+        """
         logits = self.actor(x)
         probs = Categorical(logits=logits)
         action = probs.sample()
         return action
         
-    def compute_returns(self, rewards, next_value):
+    def compute_returns(self, rewards : torch.Tensor, next_value : torch.Tensor):
+        """
+        Compute the returns for each time step given a list of rewards.
+
+        Parameters:
+        - rewards (list): List of rewards obtained at each time step.
+        - next_value: The value of the next state.
+
+        Returns:
+        - torch.FloatTensor: Returns for each time step.
+        """
         returns = []
         R = next_value
         for reward in reversed(rewards):
@@ -61,6 +101,16 @@ class PPOAgent(nn.Module):
         return torch.FloatTensor(returns)
 
     def get_action_and_value(self, x, action=None):
+        """
+        Get the action, log probability, entropy, and value for a given state.
+
+        Parameters:
+        - x: The input state.
+        - action: The chosen action. If None, a new action is sampled.
+
+        Returns:
+        - tuple: Tuple containing the action, log probability, entropy, and value.
+        """
         _probs = F.softmax(self.actor(x), dim=-1)
         logits = self.actor(x)
         probs = Categorical(logits=logits)
@@ -71,6 +121,20 @@ class PPOAgent(nn.Module):
         return action, probs.log_prob(action), probs.entropy(), self.critic(x)
     
     def update(self, b_obs, b_logprobs, b_actions, b_advantages, b_returns, b_values):
+        """
+        Update the PPO agent using the Proximal Policy Optimization algorithm.
+
+        Parameters:
+        - b_obs: Batch of observations.
+        - b_logprobs: Batch of log probabilities.
+        - b_actions: Batch of actions.
+        - b_advantages: Batch of advantages.
+        - b_returns: Batch of returns.
+        - b_values: Batch of values.
+
+        Returns:
+        - tuple: Tuple containing the value loss, policy gradient loss, and total loss.
+        """
         b_indx = np.arange(self.batchs)
         for epoch in range(self.update_epoch):
             np.random.shuffle(b_indx)
@@ -99,29 +163,3 @@ class PPOAgent(nn.Module):
                 self.optimizer.step()
                 #============= Update Step =================
         return v_loss, pg_loss, loss
-
-if __name__ == "__main__":
-     # Training parameters
-    writer = SummaryWriter(comment='-PPO')
-    #================== Config ================== 
-    potholes, traffic_jams = 0, 0
-    map_size = (3, 3)
-    render_mode = 'None'
-    lr = 1e-3
-    epochs = 1000
-    num_steps = 64
-    total_timestep = int(1e7)
-    batchs = 8
-    mini_batch = 4
-    device = 'cpu'
-    gamma = 0.99
-    update_epochs = 4 #Standard Values
-    clipping_coef = 0.1 #Standard Values
-    entropy_coef = 0.1 #Standard Values
-    max_grad_norm = 0.5 #Standard Values
-    config = {"update_epochs": update_epochs, "batchs": batchs, "mini_batch": mini_batch,
-            "clipping_coef" : clipping_coef, "entropy_coef" : entropy_coef}
-    #================== Config ================== 
-    env = ENV_OBSTACLE(map_size=map_size, render_mode=render_mode, potholes=potholes)
-    agent = PPOAgent(env, config)
-    optimizer = optim.Adam(agent.parameters(), lr, eps=1e-5)
