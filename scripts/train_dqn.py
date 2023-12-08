@@ -14,9 +14,22 @@ from RL_Pizza_Delivery.utils.buffer import ExperienceBuffer
 from RL_Pizza_Delivery.algo.qlearning import QAgent
 from RL_Pizza_Delivery.utils.torch_utils import save_model, save_frames, load_yaml
 
-def eval(agent, env, config, frameid):
+def eval(agent : QAgent, env : ENV_OBSTACLE, config : dict, frameid : int):
+    """
+    Evaluate the specified Q-learning agent in the given environment.
+
+    Parameters:
+    - agent (QAgent): The Q-learning agent to be evaluated.
+    - env (ENV_OBSTACLE): The environment in which the agent is evaluated.
+    - config (dict): Configuration parameters for evaluation.
+    - frameid (int): Identifier for the evaluation frame or iteration.
+
+    Returns:
+    None
+    """
     buf = []
     eval_total_rewards = 0.0
+    eval_rewards = []
     state = env.reset()
     for i in range(config['eval_steps']):
         if config['render_mode'] == 'rgb_array':
@@ -29,13 +42,28 @@ def eval(agent, env, config, frameid):
         eval_total_rewards += reward
         if done:
             state = env.reset()
+            eval_rewards.append(eval_total_rewards)
+            eval_total_rewards = 0.0
             buf.append(env.render())
     print("====================== EVALUALTION ======================")
-    print(f"{frameid}: reward [{eval_total_rewards:.3f}] \t")
+    print(f"{frameid}: reward [{np.mean(eval_rewards):.3f}] \t")
     if config['record_vid']:
         save_frames(buf, name="DQN_")
 
-def train(agent, env, buffer, writer=None, config=None):
+def train(agent : QAgent, env : ENV_OBSTACLE, buffer : ExperienceBuffer, writer : SummaryWriter = None, config : dict = None):
+    """
+    Train the specified Q-learning agent using experience replay.
+
+    Parameters:
+    - agent (QAgent): The Q-learning agent to be trained.
+    - env (ENV_OBSTACLE): The environment in which the agent is trained.
+    - buffer (ExperienceBuffer): The experience replay buffer.
+    - writer (SummaryWriter, optional): TensorBoard SummaryWriter for logging. Defaults to None.
+    - config (dict, optional): Configuration parameters for training. Defaults to None.
+
+    Returns:
+    None
+    """
     epsilon = config['EPSILON_START']
     total_rewards = []
     frame_idx = 0
@@ -65,6 +93,7 @@ def train(agent, env, buffer, writer=None, config=None):
             agent.net_target.load_state_dict(agent.net.state_dict())
         batch = buffer.sample(config['BATCH_SIZE'])
         loss = agent.update(batch)
+        writer.add_scalar("loss", loss.item(), frame_idx)
         #================ Backprob Update ======================        
         #================ Logging Update =======================
         if frame_idx % config['print_itr'] == 0:

@@ -1,4 +1,4 @@
-total_timesteps : 500000
+total_timesteps : 800000
 map_size : [10, 10]
 potholes : 10
 traffic_jams : 0

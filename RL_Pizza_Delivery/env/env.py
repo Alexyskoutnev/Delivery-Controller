@@ -23,8 +23,6 @@ class ENV_BASE(gym.Env):
     """
     metadata = {"render_modes": ['human', 'rgb_array'], 'render_fps': 5}
 
-
-    # def __init__(self, map_size=(10, 10), render_mode=None, seed=1, BASE_ENV_FLAG=True):
     def __init__(self, map_size=(10, 10), render_mode=None, seed=1, BASE_ENV_FLAG=True):
         """
         Initialize the environment.
@@ -89,9 +87,9 @@ class ENV_BASE(gym.Env):
             self.current_pos = max(0, self.current_pos[0] - 1), self.current_pos[1]
         elif action == 1: #Down
             self.current_pos = min(self.map_size[0] -1, self.current_pos[0] + 1), self.current_pos[1]
-        elif action == 2: #left
+        elif action == 2: #Left
             self.current_pos = self.current_pos[0], max(0, self.current_pos[1] - 1)
-        elif action == 3:
+        elif action == 3: #Right
             self.current_pos = self.current_pos[0], min(self.map_size[1] - 1, self.current_pos[1] + 1)
         self.current_pos = np.array(self.current_pos, dtype=int)
         reward = -np.sqrt((self.current_pos[0] - self.goal_pos[0])**2 + (self.current_pos[1] - self.goal_pos[1])**2)
@@ -113,6 +111,17 @@ class ENV_BASE(gym.Env):
         return observation
 
     def _render_frame(self):
+        """
+        Renders a single frame of the environment.
+
+        If the rendering mode is set to "human," it initializes the Pygame window if not already created,
+        draws the target and agent on the canvas, adds gridlines, and updates the display.
+        If the rendering mode is set to "rgb_array," it returns the rendered frame as a NumPy array.
+
+        Returns:
+            np.ndarray or None: If the rendering mode is "rgb_array," returns the rendered frame as a NumPy array.
+                Otherwise, returns None.
+        """
         if self.window is None and self.render_mode == "human":
             pygame.init()
             pygame.display.init()
@@ -191,22 +200,22 @@ class ENV_BASE(gym.Env):
                 )
 
     def render(self):
+        """
+        Renders the environment.
+
+        Returns:
+            np.ndarray or None: If the rendering mode is "rgb_array," returns the rendered frame as a NumPy array.
+                Otherwise, returns None.
+        """
         if self.render_mode == "rgb_array":
             return self._render_frame()
 
     def close(self):
+        """
+        Closes the Pygame window if it exists.
+
+        This method should be called at the end of the program or when the environment is no longer needed for rendering.
+        """
         if self.window is not None:
             pygame.display.quit()
             pygame.quit()
-
-if __name__ == "__main__":
-    render_mode = 'human'
-    env = ENV_BASE(render_mode=render_mode)
-    observation = env.reset()
-    for _ in range(100):
-        action = env.action_space.sample()  
-        observation, reward, done, _ = env.step(action)
-        print(f"[_]: obs [{observation}] | action [{action}] |  reward [{reward}] | done [{done}] ")
-        if done:
-            print("RESET")
-            observation = env.reset()
